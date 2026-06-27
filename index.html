@@ -398,6 +398,12 @@ class Component extends DCLogic {
 
   componentDidMount(){
     try { const r = localStorage.getItem(KEY); if (r) this.setState(this.fromData(JSON.parse(r))); } catch(e){}
+    try {
+      fetch('https://api.frankfurter.app/latest?from=GBP&to=EUR')
+        .then(function(res){ return res.ok ? res.json() : null; })
+        .then(function(d){ var v = d && d.rates && d.rates.EUR; if (v) this.setState({gbpEur:String(v)}); }.bind(this))
+        .catch(function(){});
+    } catch(e){}
   }
   componentDidUpdate(){
     try { localStorage.setItem(KEY, JSON.stringify(this.dataOut())); } catch(e){}
