@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/lizy-portfolio-design-system-ldb-76f076ee-f80f-4c8f-ad65-ee8641246941/colors_and_type.css">
+<style>
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--canvas);font-family:var(--font-body);color:var(--ink)}
+  input,select,button,textarea{font-family:inherit}
+  input:focus,select:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-pale)}
+  ::-webkit-scrollbar{height:9px;width:9px}
+  ::-webkit-scrollbar-thumb{background:var(--line);border-radius:6px}
+  ::-webkit-scrollbar-track{background:transparent}
+</style>
+</helmet>
+<div style="max-width:1180px;margin:0 auto;padding:30px 24px 90px">
+
+  <!-- HEADER -->
+  <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:20px">
+    <div>
+      <div style="font:400 32px var(--font-display);letter-spacing:-.01em;line-height:1">Money<span style="color:var(--accent-pink)">.</span></div>
+      <div style="font:400 13px var(--font-body);color:var(--mute);margin-top:5px">You enter the data in Income, Expenses and Savings. Home only adds it up — it stores nothing of its own. Everything normalizes to EUR. Saves to this browser automatically.</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:7px;background:#fff;border:1px solid var(--line);border-radius:9999px;padding:6px 8px 6px 14px">
+        <span style="font:600 11px var(--font-body);letter-spacing:.06em;text-transform:uppercase;color:var(--mute)">GBP→EUR</span>
+        <input value="{{ gbpEur }}" onInput="{{ onRate }}" inputmode="decimal" style="font:600 13px var(--font-body);color:var(--ink);background:var(--canvas);border:1px solid var(--line);border-radius:8px;padding:5px 8px;width:64px">
+      </div>
+      <button onClick="{{ exportData }}" style="font:600 13px var(--font-body);color:var(--ink);background:#fff;border:1px solid var(--ink);border-radius:9999px;padding:8px 16px;cursor:pointer">Export JSON</button>
+      <label style="font:600 13px var(--font-body);color:var(--ink);background:#fff;border:1px solid var(--ink);border-radius:9999px;padding:8px 16px;cursor:pointer">Import JSON<input type="file" accept="application/json,.json" onChange="{{ onImport }}" style="display:none"></label>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div style="display:flex;gap:9px;flex-wrap:wrap;margin-bottom:26px;border-bottom:1px solid var(--line);padding-bottom:18px">
+    <sc-for list="{{ nav }}" as="t" hint-placeholder-count="4">
+      <button onClick="{{ t.onClick }}" style="{{ t.style }}">{{ t.label }}</button>
+    </sc-for>
+  </div>
+
+  <!-- ============ HOME ============ -->
+  <sc-if value="{{ isHome }}" hint-placeholder-val="{{ true }}">
+  <div>
+
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:18px">
+      <span style="font:600 11px var(--font-body);letter-spacing:.1em;text-transform:uppercase;color:var(--mute)">Showing month</span>
+      <sc-if value="{{ hasMonths }}" hint-placeholder-val="{{ false }}">
+        <select value="{{ homeMonth }}" onChange="{{ onSelMonth }}" style="font:600 13px var(--font-body);color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:9999px;padding:8px 14px;cursor:pointer">
+          <sc-for list="{{ monthOptions }}" as="o" hint-placeholder-count="3"><option value="{{ o.value }}">{{ o.label }}</option></sc-for>
+        </select>
+      </sc-if>
+      <sc-if value="{{ noMonths }}" hint-placeholder-val="{{ true }}">
+        <span style="font:400 13px var(--font-body);color:var(--mute)">— add data in the other tabs to begin —</span>
+      </sc-if>
+    </div>
+
+    <!-- three big numbers -->
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:16px">
+      <div style="background:#fff;border-radius:var(--rounded-xl);padding:24px">
+        <div style="font:600 11px var(--font-body);letter-spacing:.1em;text-transform:uppercase;color:var(--mute)">Net position</div>
+        <div style="font:400 40px var(--font-display);line-height:1.05;margin-top:12px">{{ netPositionStr }}</div>
+        <div style="font:400 12px var(--font-body);color:var(--mute);margin-top:9px">savings + investments − credit-card debt</div>
+      </div>
+      <div style="background:#fff;border-radius:var(--rounded-xl);padding:24px">
+        <div style="font:600 11px var(--font-body);letter-spacing:.1em;text-transform:uppercase;color:var(--mute)">Monthly surplus / deficit</div>
+        <div style="font:400 40px var(--font-display);line-height:1.05;margin-top:12px;color:{{ surplusColor }}">{{ surplusStr }}</div>
+        <div style="font:400 12px var(--font-body);color:var(--mute);margin-top:9px">{{ surplusSub }}</div>
+      </div>
+      <div style="background:#fff;border-radius:var(--rounded-xl);padding:24px">
+        <div style="font:600 11px var(--font-body);letter-spacing:.1em;text-transform:uppercase;color:var(--mute)">Runway</div>
+        <div style="display:flex;align-items:baseline;gap:8px;margin-top:12px">
+          <div style="font:400 40px var(--font-display);line-height:1.05;color:{{ runwayColor }}">{{ runwayHeadline }}</div>
+          <div style="font:400 13px var(--font-body);color:var(--body)">{{ runwayUnit }}</div>
+        </div>
+        <div style="font:400 12px var(--font-body);color:var(--mute);margin-top:9px">{{ runwaySub }}</div>
+      </div>
+    </div>
+
+    <!-- BIG INTERACTIVE CHART -->
+    <sc-if value="{{ showCharts }}" hint-placeholder-val="{{ true }}">
+    <div style="background:#fff;border-radius:var(--rounded-xl);padding:24px 26px 26px;margin-bottom:24px">
+
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap">
+        <div>
+          <div style="font:600 17px var(--font-body)">Money over time</div>
+          <div style="font:400 12px var(--font-body);color:var(--mute);margin-top:3px;max-width:520px;text-wrap:pretty">{{ chartCaption }}</div>
+        </div>
+        <div style="display:flex;gap:5px;background:var(--canvas);border-radius:9999px;padding:4px">
+          <sc-for list="{{ vizBtns }}" as="v" hint-placeholder-count="3">
+            <button onClick="{{ v.onClick }}" style="{{ v.style }}">{{ v.label }}</button>
+          </sc-for>
+        </div>
+      </div>
+
+      <!-- series toggle chips -->
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin:18px 0 4px">
+        <sc-for list="{{ seriesChips }}" as="c" hint-placeholder-count="6">
+          <button onClick="{{ c.onClick }}" style="{{ c.style }}">
+            <span style="width:10px;height:10px;border-radius:3px;flex:0 0 auto;background:{{ c.dot }}"></span>
+            {{ c.label }}
+            <span style="font:600 9px var(--font-body);letter-spacing:.08em;text-transform:uppercase;opacity:.6">{{ c.kindLabel }}</span>
+          </button>
+        </sc-for>
+      </div>
+
+      <!-- pie-only month selector -->
+      <sc-if value="{{ isPie }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;align-items:center;gap:9px;margin:14px 0 2px">
+          <span style="font:600 11px var(--font-body);letter-spacing:.1em;text-transform:uppercase;color:var(--mute)">Month</span>
+          <select value="{{ pieMonth }}" onChange="{{ onPieMonth }}" style="font:600 13px var(--font-body);color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:9999px;padding:8px 14px;cursor:pointer">
+            <sc-for list="{{ monthOptions }}" as="o" hint-placeholder-count="3"><option value="{{ o.value }}">{{ o.label }}</option></sc-for>
+          </select>
+        </div>
+      </sc-if>
+
+      <div style="margin-top:16px;min-height:260px">{{ bigChart }}</div>
+    </div>
+    </sc-if>
+
+    <!-- biggest expenses -->
+    <div style="background:#fff;border-radius:var(--rounded-xl);padding:22px 24px">
+      <div style="font:600 15px var(--font-body);margin-bottom:4px">Biggest expenses · {{ homeMonthLabel }}</div>
+      <sc-for list="{{ bigExpBars }}" as="b" hint-placeholder-count="4">
+        <div style="margin-top:14px">
+          <div style="display:flex;justify-content:space-between;font:400 13px var(--font-body);margin-bottom:5px"><span>{{ b.name }} <span style="color:var(--mute);font-size:11px">{{ b.group }}</span></span><span style="font-weight:600;color:var(--ink)">{{ b.amt }}</span></div>
+          <div style="height:9px;border-radius:6px;background:var(--canvas);overflow:hidden"><div style="height:100%;border-radius:6px;background:var(--accent-pink-deep);width:{{ b.w }}%"></div></div>
+        </div>
+      </sc-for>
+      <sc-if value="{{ bigExpEmpty }}" hint-placeholder-val="{{ true }}"><div style="font:400 13px var(--font-body);color:var(--mute);padding-top:10px">No expenses recorded for this month.</div></sc-if>
+    </div>
+
+  </div>
+  </sc-if>
+
+  <!-- ============ INCOME ============ -->
+  <sc-if value="{{ isIncome }}" hint-placeholder-val="{{ false }}">
+  <div>
+    <div style="background:#fff;border-radius:var(--rounded-xl);padding:22px 24px;margin-bottom:18px">
+      <div style="font:600 15px var(--font-body)">Where the money comes from</div>
+      <div style="font:400 12px var(--font-body);color:var(--mute);margin-top:2px">Active income by source, all months (EUR).</div>
+      <div style="margin-top:18px">{{ incomeByCatEl }}</div>
+    </div>
+    <div style="background:#fff;border-radius:var(--rounded-xl);padding:22px 24px;margin-bottom:18px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <div><div style="font:600 17px var(--font-body)">Income</div><div style="font:400 12px var(--font-body);color:var(--mute);margin-top:2px">Add a line per income source per month. Uncheck Active to stop a source counting.</div></div>
+        <button onClick="{{ addIncome }}" style="font:600 12px var(--font-body);color:var(--ink);background:var(--primary);border:none;border-radius:9999px;padding:8px 16px;cursor:pointer">+ Add income</button>
+      </div>
+      <div style="overflow-x:auto;margin-top:12px">
+        <div style="min-width:840px">
+          <div style="display:grid;grid-template-columns:140px 1.4fr 1fr .9fr 78px 64px 28px;gap:8px;font:600 10px var(--font-body);letter-spacing:.08em;text-transform:uppercase;color:var(--mute);padding:0 2px 8px">
+            <div>Month</div><div>Source</div><div>Category</div><div>Amount</div><div>Currency</div><div style="text-align:center">Active</div><div></div>
+          </div>
+          <sc-for list="{{ incomeRows }}" as="r" hint-placeholder-count="0">
+            <div style="display:grid;grid-template-columns:140px 1.4fr 1fr .9fr 78px 64px 28px;gap:8px;align-items:center;padding:4px 0;opacity:{{ r.opacity }}">
+              <input type="month" value="{{ r.month }}" onInput="{{ r.onMonth }}" style="font:400 13px var(--font-body);color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:10px;padding:7px 8px;width:100%">
+              <input value="{{ r.source }}" onInput="{{ r.onSource }}" placeholder="Source name" style="font:400 13px var(--font-body);color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 10px;width:100%">
+              <select value="{{ r.category }}" onChange="{{ r.onCat }}" style="font:400 13px var(--font-body);color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 6px;width:100%">
+                <option value="salary">salary</option><option value="benefit">benefit</option><option value="freelance">freelance</option><option value="reimbursement">reimbursement</option>
+              </select>
+              <input value="{{ r.amount }}" onInput="{{ r.onAmt }}" inputmode="decimal" placeholder="0" style="font:400 13px var(--font-body);color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 10px;width:100%">
+              <select value="{{ r.currency }}" onChange="{{ r.onCur }}" style="font:400 13px var(--font-body);color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 6px;width:100%">
+                <option value="EUR">EUR</option><option value="GBP">GBP</option>
+              </select>
+              <div style="display:flex;justify-content:center"><input type="checkbox" checked="{{ r.active }}" onChange="{{ r.onActive }}" style="width:17px;height:17px;accent-color:var(--primary);cursor:pointer"></div>
+              <button onClick="{{ r.onDel }}" title="Delete" style="border:none;background:transparent;color:var(--mute);cursor:pointer;font-size:18px;line-height:1">×</button>
+            </div>
+          </sc-for>
+          <sc-if value="{{ incEmpty }}" hint-placeholder-val="{{ true }}"><div style="font:400 13px var(--font-body);color:var(--mute);padding:14px 2px">No income added yet. Click <b style="color:var(--body)">+ Add income</b> to start.</div></sc-if>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div style="background:#fff;border-radius:var(--rounded-xl);padding:22px 24px">
+        <div style="font:600 15px var(--font-body);margin-bottom:12px">Monthly total <span style="font:400 12px var(--font-body);color:var(--mute)">(active sources, EUR)</span></div>
+        <sc-for list="{{ incomeMonthly }}" as="m" hint-placeholder-count="0">
+          <div style="display:flex;justify-content:space-between;font:400 13px var(--font-body);padding:7px 0;border-bottom:1px solid var(--line)"><span>{{ m.label }}</span><span style="font-weight:600;color:var(--ink)">{{ m.total }}</span></div>
+        </sc-for>
+        <sc-if value="{{ incEmpty }}" hint-placeholder-val="{{ true }}"><div style="font:400 13px var(--font-body);color:var(--mute)">—</div></sc-if>
+      </div>
+      <div style="background:#fff;border-radius:var(--rounded-xl);padding:22px 24px">
+        <div style="font:600 15px var(--font-body);margin-bottom:12px">By source <span style="font:400 12px var(--font-body);color:var(--mute)">(active total, EUR)</span></div>
+        <sc-for list="{{ incomeBySource }}" as="s" hint-placeholder-count="0">
+          <div style="margin-bottom:13px">
+            <div style="display:flex;justify-content:space-between;font:400 13px var(--font-body);margin-bottom:5px"><span>{{ s.name }}</span><span style="font-weight:600;color:var(--ink)">{{ s.amt }}</span></div>
+            <div style="height:9px;border-radius:6px;background:var(--canvas);overflow:hidden"><div style="height:100%;border-radius:6px;background:var(--primary);width:{{ s.w }}%"></div></div>
+          </div>
+        </sc-for>
+        <sc-if value="{{ incEmpty }}" hint-placeholder-val="{{ true }}"><div style="font:400 13px var(--font-body);color:var(--mute)">—</div></sc-if>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- ============ EXPENSES ============ -->
+  <sc-if value="{{ isExpenses }}" hint-placeholder-val="{{ false }}">
+  <div>
+
+    <!-- monthly breakdown pies -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+      <div style="background:#fff;border-radius:var(--rounded-xl);padding:22px 24px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
+          <div>
+            <div style="font:600 15px var(--font-body)">Spending breakdown</div>
+            <div style="font:400 12px var(--font-body);color:var(--mute);margin-top:2px">Personal by category + Joint as one slice (EUR).</div>
+          </div>
+          <select value="{{ expPie1Month }}" onChange="{{ onExpPie1 }}" style="font:600 12px var(--font-body);color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:9999px;padding:7px 12px;cursor:pointer">
+            <sc-for list="{{ monthOptions }}" as="o" hint-placeholder-count="3"><option value="{{ o.value }}">{{ o.label }}</option></sc-for>
+          </select>
+        </div>
+        <div style="margin-top:18px">{{ expPie1El }}</div>
+      </div>
+      <div style="background:#fff;border-radius:var(--rounded-xl);padding:22px 24px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
+          <div>
+            <div style="font:600 15px var(--font-body)">Subscriptions breakdown</div>
+            <div style="font:400 12px var(--font-body);color:var(--mute);margin-top:2px">Each subscription billed this month (EUR).</div>
+          </div>
+          <select value="{{ expPie2Month }}" onChange="{{ onExpPie2 }}" style="font:600 12px var(--font-body);color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:9999px;padding:7px 12px;cursor:pointer">
+            <sc-for list="{{ monthOptions }}" as="o" hint-placeholder-count="3"><option value="{{ o.value }}">{{ o.label }}</option></sc-for>
+          </select>
+        </div>
+        <div style="margin-top:18px">{{ expPie2El }}</div>
+      </div>
+    </div>
+
+    <!-- Joint account -->
+    <div style="background:#fff;border-radius:var(--rounded-xl);padding:22px 24px;margin-bottom:16px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div style="font:600 16px var(--font-body)">Joint account</div>
+        <button onClick="{{ addJoint }}" style="font:600 12px var(--font-body);color:var(--ink);background:var(--primary);border:none;border-radius:9999px;padding:7px 15px;cursor:pointer">+ Add</button>
+      </div>
+      <div style="overflow-x:auto;margin-top:12px"><div style="min-width:640px">
+        <div style="display:grid;grid-template-columns:140px 1.6fr .9fr 80px 28px;gap:8px;font:600 10px var(--font-body);letter-spacing:.08em;text-transform:uppercase;color:var(--mute);padding:0 2px 8px"><div>Month</div><div>Name</div><div>Amount</div><div>Currency</div><div></div></div>
+        <sc-for list="{{ rowsJoint }}" as="r" hint-placeholder-count="0">
+          <div style="display:grid;grid-template-columns:140px 1.6fr .9fr 80px 28px;gap:8px;align-items:center;padding:4px 0">
+            <input type="month" value="{{ r.month }}" onInput="{{ r.onMonth }}" style="font:400 13px var(--font-body);color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:10px;padding:7px 8px;width:100%">
+            <input value="{{ r.name }}" onInput="{{ r.onName }}" placeholder="Expense name" style="font:400 13px var(--font-body);color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 10px;width:100%">
+            <input value="{{ r.amount }}" onInput="{{ r.onAmt }}" inputmode="decimal" placeholder="0" style="font:400 13px var(--font-body);color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 10px;width:100%">
+            <select value="{{ r.currency }}" onChange="{{ r.onCur }}" style="font:400 13px var(--font-body);color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 6px;width:100%"><option value="EUR">EUR</option><option value="GBP">GBP</option></select>
+            <button onClick="{{ r.onDel }}" title="Delete" style="border:none;background:transparent;color:var(--mute);cursor:pointer;font-size:18px;line-height:1">×</button>
+          </div>
+        </sc-for>
+        <sc-if value="{{ jointEmpty }}" hint-placeholder-val="{{ true }}"><div style="font:400 13px var(--font-body);color:var(--mute);padding:10px 2px">No joint-account expenses yet.</div></sc-if>
+      </div></div>
+    </div>
+
+    <!-- Subscriptions -->
+    <div style="background:#fff;border-radius:var(--rounded-xl);padding:22px 24px;margin-bottom:16px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div style="font:600 16px var(--font-body)">Subscriptions</div>
+        <button onClick="{{ addSub }}" style="font:600 12px var(--font-body);color:var(--ink);background:var(--primary);border:none;border-radius:9999px;padding:7px 15px;cursor:pointer">+ Add</button>
+      </div>
+      <div style="overflow-x:auto;margin-top:12px"><div style="min-width:900px">
+        <div style="display:grid;grid-template-columns:140px 1.3fr 1fr .9fr 80px 100px 28px;gap:8px;font:600 10px var(--font-body);letter-spacing:.08em;text-transform:uppercase;color:var(--mute);padding:0 2px 8px"><div>Month</div><div>Name</div><div>Category</div><div>Amount</div><div>Currency</div><div>Status</div><div></div></div>
+        <sc-for list="{{ rowsSubs }}" as="r" hint-placeholder-count="0">
+          <div style="display:grid;grid-template-columns:140px 1.3fr 1fr .9fr 80px 100px 28px;gap:8px;align-items:center;padding:4px 0">
+            <input type="month" value="{{ r.month }}" onInput="{{ r.onMonth }}" style="font:400 13px var(--font-body);color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:10px;padding:7px 8px;width:100%">
+            <input value="{{ r.name }}" onInput="{{ r.onName }}" placeholder="Subscription name" style="font:400 13px var(--font-body);color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 10px;width:100%">
+            <select value="{{ r.category }}" onChange="{{ r.onCatSub }}" style="font:400 13px var(--font-body);color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 6px;width:100%"><option value="AI tools">AI tools</option><option value="Design tools">Design tools</option><option value="Web-hosting">Web-hosting</option><option value="Learning">Learning</option><option value="Phone/mobile">Phone/mobile</option><option value="Other">Other</option></select>
+            <input value="{{ r.amount }}" onInput="{{ r.onAmt }}" inputmode="decimal" placeholder="0" style="font:400 13px var(--font-body);color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 10px;width:100%">
+            <select value="{{ r.currency }}" onChange="{{ r.onCur }}" style="font:400 13px var(--font-body);color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 6px;width:100%"><option value="EUR">EUR</option><option value="GBP">GBP</option></select>
+            <select value="{{ r.status }}" onChange="{{ r.onStatus }}" style="font:400 13px var(--font-body);color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 6px;width:100%"><option value="Keep">Keep</option><option value="Review">Review</option><option value="Cut">Cut</option></select>
+            <button onClick="{{ r.onDel }}" title="Delete" style="border:none;background:transparent;color:var(--mute);cursor:pointer;font-size:18px;line-height:1">×</button>
+          </div>
+        </sc-for>
+        <sc-if value="{{ subsEmpty }}" hint-placeholder-val="{{ true }}"><div style="font:400 13px var(--font-body);color:var(--mute);padding:10px 2px">No subscriptions yet.</div></sc-if>
+      </div></div>
+    </div>
+
+    <!-- Personal -->
+    <div style="background:#fff;border-radius:var(--rounded-xl);padding:22px 24px;margin-bottom:18px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div style="font:600 16px var(--font-body)">Personal</div>
+        <button onClick="{{ addPersonal }}" style="font:600 12px var(--font-body);color:var(--ink);background:var(--primary);border:none;border-radius:9999px;padding:7px 15px;cursor:pointer">+ Add</button>
+      </div>
+      <div style="overflow-x:auto;margin-top:12px"><div style="min-width:740px">
+        <div style="display:grid;grid-template-columns:140px 1.4fr 1fr .9fr 80px 28px;gap:8px;font:600 10px var(--font-body);letter-spacing:.08em;text-transform:uppercase;color:var(--mute);padding:0 2px 8px"><div>Month</div><div>Name</div><div>Category</div><div>Amount</div><div>Currency</div><div></div></div>
+        <sc-for list="{{ rowsPersonal }}" as="r" hint-placeholder-count="0">
+          <div style="display:grid;grid-template-columns:140px 1.4fr 1fr .9fr 80px 28px;gap:8px;align-items:center;padding:4px 0">
+            <input type="month" value="{{ r.month }}" onInput="{{ r.onMonth }}" style="font:400 13px var(--font-body);color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:10px;padding:7px 8px;width:100%">
+            <input value="{{ r.name }}" onInput="{{ r.onName }}" placeholder="Expense name" style="font:400 13px var(--font-body);color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 10px;width:100%">
+            <select value="{{ r.cat }}" onChange="{{ r.onCat }}" style="font:400 13px var(--font-body);color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 6px;width:100%"><option value="Groceries">Groceries</option><option value="Eating out">Eating out</option><option value="Transport">Transport</option><option value="Health">Health</option><option value="Beauty">Beauty</option><option value="Shopping">Shopping</option><option value="Other">Other</option></select>
+            <input value="{{ r.amount }}" onInput="{{ r.onAmt }}" inputmode="decimal" placeholder="0" style="font:400 13px var(--font-body);color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 10px;width:100%">
+            <select value="{{ r.currency }}" onChange="{{ r.onCur }}" style="font:400 13px var(--font-body);color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 6px;width:100%"><option value="EUR">EUR</option><option value="GBP">GBP</option></select>
+            <button onClick="{{ r.onDel }}" title="Delete" style="border:none;background:transparent;color:var(--mute);cursor:pointer;font-size:18px;line-height:1">×</button>
+          </div>
+        </sc-for>
+        <sc-if value="{{ personalEmpty }}" hint-placeholder-val="{{ true }}"><div style="font:400 13px var(--font-body);color:var(--mute);padding:10px 2px">No personal expenses yet.</div></sc-if>
+      </div></div>
+    </div>
+
+    <!-- where the money goes -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+      <div style="background:#fff;border-radius:var(--rounded-xl);padding:22px 24px">
+        <div style="font:600 15px var(--font-body)">Where the money goes</div>
+        <div style="font:400 12px var(--font-body);color:var(--mute);margin-top:2px">By category, all months (EUR).</div>
+        <div style="margin-top:16px">
+          <sc-for list="{{ expenseByGroup }}" as="g" hint-placeholder-count="3">
+            <div style="margin-bottom:14px">
+              <div style="display:flex;justify-content:space-between;align-items:baseline;font:400 13px var(--font-body);margin-bottom:5px"><span style="font-weight:600;color:var(--ink)">{{ g.name }}</span><span><span style="color:var(--mute);font-size:11px;margin-right:8px">{{ g.pct }}</span><span style="font-weight:600;color:var(--ink)">{{ g.amt }}</span></span></div>
+              <div style="height:10px;border-radius:6px;background:var(--canvas);overflow:hidden"><div style="height:100%;border-radius:6px;width:{{ g.w }}%;background:{{ g.color }}"></div></div>
+            </div>
+          </sc-for>
+          <sc-if value="{{ expEmpty }}" hint-placeholder-val="{{ true }}"><div style="font:400 13px var(--font-body);color:var(--mute);padding-top:6px">No expenses recorded yet.</div></sc-if>
+        </div>
+      </div>
+      <div style="background:#fff;border-radius:var(--rounded-xl);padding:22px 24px">
+        <div style="font:600 15px var(--font-body)">Biggest expenses</div>
+        <div style="font:400 12px var(--font-body);color:var(--mute);margin-top:2px">Top items by total spend, all months (EUR).</div>
+        <div style="margin-top:16px">
+          <sc-for list="{{ expenseByItem }}" as="b" hint-placeholder-count="5">
+            <div style="margin-bottom:13px">
+              <div style="display:flex;justify-content:space-between;font:400 13px var(--font-body);margin-bottom:5px"><span>{{ b.name }} <span style="color:var(--mute);font-size:11px">{{ b.group }}</span></span><span style="font-weight:600;color:var(--ink)">{{ b.amt }}</span></div>
+              <div style="height:9px;border-radius:6px;background:var(--canvas);overflow:hidden"><div style="height:100%;border-radius:6px;width:{{ b.w }}%;background:{{ b.color }}"></div></div>
+            </div>
+          </sc-for>
+          <sc-if value="{{ expEmpty }}" hint-placeholder-val="{{ true }}"><div style="font:400 13px var(--font-body);color:var(--mute);padding-top:6px">No expenses recorded yet.</div></sc-if>
+        </div>
+      </div>
+    </div>
+
+    <!-- per month totals -->
+    <div style="background:#fff;border-radius:var(--rounded-xl);padding:22px 24px">
+      <div style="font:600 15px var(--font-body);margin-bottom:12px">Totals per group, per month <span style="font:400 12px var(--font-body);color:var(--mute)">(EUR)</span></div>
+      <div style="overflow-x:auto"><div style="min-width:560px">
+        <div style="display:grid;grid-template-columns:1.2fr 1fr 1fr 1fr 1fr;gap:8px;font:600 10px var(--font-body);letter-spacing:.08em;text-transform:uppercase;color:var(--mute);padding:0 2px 8px;border-bottom:1px solid var(--line)"><div>Month</div><div style="text-align:right">Joint</div><div style="text-align:right">Subscriptions</div><div style="text-align:right">Personal</div><div style="text-align:right">Combined</div></div>
+        <sc-for list="{{ expenseMonthly }}" as="m" hint-placeholder-count="0">
+          <div style="display:grid;grid-template-columns:1.2fr 1fr 1fr 1fr 1fr;gap:8px;font:400 13px var(--font-body);padding:8px 2px;border-bottom:1px solid var(--line)"><span>{{ m.label }}</span><span style="text-align:right">{{ m.joint }}</span><span style="text-align:right">{{ m.subs }}</span><span style="text-align:right">{{ m.personal }}</span><span style="text-align:right;font-weight:600;color:var(--ink)">{{ m.total }}</span></div>
+        </sc-for>
+        <sc-if value="{{ expEmpty }}" hint-placeholder-val="{{ true }}"><div style="font:400 13px var(--font-body);color:var(--mute);padding:12px 2px">No expenses recorded yet.</div></sc-if>
+      </div></div>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- ============ SAVINGS & INVESTMENTS ============ -->
+  <sc-if value="{{ isSavings }}" hint-placeholder-val="{{ false }}">
+  <div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:18px">
+      <div style="background:#fff;border-radius:var(--rounded-xl);padding:22px 24px"><div style="font:600 11px var(--font-body);letter-spacing:.1em;text-transform:uppercase;color:var(--mute)">Total savings</div><div style="font:400 32px var(--font-display);margin-top:10px;color:var(--success)">{{ totalSavingsStr }}</div><div style="font:400 11px var(--font-body);color:var(--mute);margin-top:6px">latest balance per account</div></div>
+      <div style="background:#fff;border-radius:var(--rounded-xl);padding:22px 24px"><div style="font:600 11px var(--font-body);letter-spacing:.1em;text-transform:uppercase;color:var(--mute)">Total investments</div><div style="font:400 32px var(--font-display);margin-top:10px;color:var(--primary-active)">{{ totalInvestStr }}</div><div style="font:400 11px var(--font-body);color:var(--mute);margin-top:6px">latest balance per account</div></div>
+      <div style="background:#fff;border-radius:var(--rounded-xl);padding:22px 24px"><div style="font:600 11px var(--font-body);letter-spacing:.1em;text-transform:uppercase;color:var(--mute)">Credit-card debt</div><div style="font:400 32px var(--font-display);margin-top:10px;color:{{ cardColor }}">{{ totalCardStr }}</div><div style="font:400 11px var(--font-body);color:var(--mute);margin-top:6px">subtracted from net position</div></div>
+    </div>
+
+    <div style="background:#fff;border-radius:var(--rounded-xl);padding:22px 24px;margin-bottom:18px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div><div style="font:600 17px var(--font-body)">Accounts &amp; balances</div><div style="font:400 12px var(--font-body);color:var(--mute);margin-top:2px">Add a month-end balance per account, per month. Use <b style="color:var(--body)">credit card</b> for a card balance you owe.</div></div>
+        <button onClick="{{ addSavings }}" style="font:600 12px var(--font-body);color:var(--ink);background:var(--primary);border:none;border-radius:9999px;padding:8px 16px;cursor:pointer">+ Add row</button>
+      </div>
+      <div style="overflow-x:auto;margin-top:12px"><div style="min-width:760px">
+        <div style="display:grid;grid-template-columns:140px 1.4fr 1fr 1fr 80px 28px;gap:8px;font:600 10px var(--font-body);letter-spacing:.08em;text-transform:uppercase;color:var(--mute);padding:0 2px 8px"><div>Month</div><div>Account</div><div>Type</div><div>Month-end balance</div><div>Currency</div><div></div></div>
+        <sc-for list="{{ savingsRows }}" as="r" hint-placeholder-count="0">
+          <div style="display:grid;grid-template-columns:140px 1.4fr 1fr 1fr 80px 28px;gap:8px;align-items:center;padding:4px 0">
+            <input type="month" value="{{ r.month }}" onInput="{{ r.onMonth }}" style="font:400 13px var(--font-body);color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:10px;padding:7px 8px;width:100%">
+            <input value="{{ r.account }}" onInput="{{ r.onAccount }}" placeholder="Account name" style="font:400 13px var(--font-body);color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 10px;width:100%">
+            <select value="{{ r.type }}" onChange="{{ r.onType }}" style="font:400 13px var(--font-body);color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 6px;width:100%"><option value="savings">savings</option><option value="investment">investment</option><option value="credit card">credit card</option></select>
+            <input value="{{ r.balance }}" onInput="{{ r.onBal }}" inputmode="decimal" placeholder="0" style="font:400 13px var(--font-body);color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 10px;width:100%">
+            <select value="{{ r.currency }}" onChange="{{ r.onCur }}" style="font:400 13px var(--font-body);color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 6px;width:100%"><option value="EUR">EUR</option><option value="GBP">GBP</option></select>
+            <button onClick="{{ r.onDel }}" title="Delete" style="border:none;background:transparent;color:var(--mute);cursor:pointer;font-size:18px;line-height:1">×</button>
+          </div>
+        </sc-for>
+        <sc-if value="{{ savEmpty }}" hint-placeholder-val="{{ true }}"><div style="font:400 13px var(--font-body);color:var(--mute);padding:14px 2px">No balances added yet. Click <b style="color:var(--body)">+ Add row</b> to start.</div></sc-if>
+      </div></div>
+    </div>
+
+    <div style="background:#fff;border-radius:var(--rounded-xl);padding:22px 24px">
+      <div style="font:600 15px var(--font-body);margin-bottom:12px">Balances per month <span style="font:400 12px var(--font-body);color:var(--mute)">(EUR)</span></div>
+      <div style="overflow-x:auto"><div style="min-width:420px">
+        <div style="display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:8px;font:600 10px var(--font-body);letter-spacing:.08em;text-transform:uppercase;color:var(--mute);padding:0 2px 8px;border-bottom:1px solid var(--line)"><div>Month</div><div style="text-align:right">Savings</div><div style="text-align:right">Investments</div></div>
+        <sc-for list="{{ savingsMonthly }}" as="m" hint-placeholder-count="0">
+          <div style="display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:8px;font:400 13px var(--font-body);padding:8px 2px;border-bottom:1px solid var(--line)"><span>{{ m.label }}</span><span style="text-align:right">{{ m.sav }}</span><span style="text-align:right">{{ m.inv }}</span></div>
+        </sc-for>
+        <sc-if value="{{ savEmpty }}" hint-placeholder-val="{{ true }}"><div style="font:400 13px var(--font-body);color:var(--mute);padding:12px 2px">—</div></sc-if>
+      </div></div>
+    </div>
+  </div>
+  </sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1180,&quot;height&quot;:920},&quot;showCharts&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;chartFill&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;}}">
+const KEY = 'ldb-money-tabs-v2';
+
+class Component extends DCLogic {
+  constructor(props){
+    super(props);
+    this.state = { tab:'home', selMonth:'', chartType:'bar', pieMonth:'', expPieMonth1:'', expPieMonth2:'', hidden:{}, gbpEur:'1.158', income:[{"id":"id0","month":"2026-01","source":"Adam + Eve Beautylounge","category":"salary","amount":"2472.98","currency":"EUR","active":true},{"id":"id1","month":"2026-01","source":"Adam + Eve — reimbursement","category":"reimbursement","amount":"21.5","currency":"EUR","active":true},{"id":"id2","month":"2026-01","source":"Adam + Eve — reimbursement","category":"reimbursement","amount":"6.99","currency":"EUR","active":true},{"id":"id3","month":"2026-01","source":"BdV Behrens GmbH","category":"salary","amount":"538","currency":"EUR","active":true},{"id":"id4","month":"2026-02","source":"Adam + Eve Beautylounge","category":"salary","amount":"2472.98","currency":"EUR","active":true},{"id":"id5","month":"2026-02","source":"Adam + Eve — Deutschkurs reimbursement","category":"reimbursement","amount":"284.74","currency":"EUR","active":true},{"id":"id6","month":"2026-02","source":"Adam + Eve — reimbursement","category":"reimbursement","amount":"24.73","currency":"EUR","active":true},{"id":"id7","month":"2026-02","source":"BdV Behrens GmbH","category":"salary","amount":"538","currency":"EUR","active":true},{"id":"id8","month":"2026-03","source":"Adam + Eve Beautylounge","category":"salary","amount":"2472.98","currency":"EUR","active":true},{"id":"id9","month":"2026-03","source":"Adam + Eve — reimbursement","category":"reimbursement","amount":"29.9","currency":"EUR","active":true},{"id":"id10","month":"2026-03","source":"Adam + Eve — reimbursement","category":"reimbursement","amount":"49.05","currency":"EUR","active":true},{"id":"id11","month":"2026-03","source":"BdV Behrens GmbH","category":"salary","amount":"538","currency":"EUR","active":true},{"id":"id12","month":"2026-04","source":"Adam + Eve Beautylounge (final)","category":"salary","amount":"1236.49","currency":"EUR","active":true},{"id":"id13","month":"2026-04","source":"BdV Behrens GmbH","category":"salary","amount":"538","currency":"EUR","active":true},{"id":"id14","month":"2026-04","source":"Bundesagentur für Arbeit","category":"benefit","amount":"696.3","currency":"EUR","active":true},{"id":"id15","month":"2026-05","source":"BdV Behrens GmbH","category":"salary","amount":"538","currency":"EUR","active":true},{"id":"id16","month":"2026-06","source":"Bundesagentur für Arbeit","category":"benefit","amount":"1392.6","currency":"EUR","active":true}], expenses:[{"id":"id17","month":"2026-02","name":"Joint account contribution (Ezequiel)","group":"Joint account","amount":"1800","currency":"EUR","status":""},{"id":"id18","month":"2026-03","name":"Joint account contribution (Ezequiel)","group":"Joint account","amount":"1800","currency":"EUR","status":""},{"id":"id19","month":"2026-03","name":"Transfer to Ezequiel (Wise)","group":"Joint account","amount":"1000","currency":"EUR","status":""},{"id":"id20","month":"2026-04","name":"Joint account contribution (Ezequiel)","group":"Joint account","amount":"1600","currency":"EUR","status":""},{"id":"id21","month":"2026-05","name":"Joint account contribution (Ezequiel)","group":"Joint account","amount":"2060","currency":"EUR","status":""},{"id":"id22","month":"2026-06","name":"Joint account contribution (Ezequiel)","group":"Joint account","amount":"1300","currency":"EUR","status":""},{"id":"id23","month":"2026-04","name":"Claude (Anthropic)","group":"Subscriptions","amount":"21.78","currency":"EUR","status":"Keep","category":"AI tools"},{"id":"id24","month":"2026-05","name":"Claude (Anthropic)","group":"Subscriptions","amount":"116.64","currency":"EUR","status":"Review","category":"AI tools"},{"id":"id25","month":"2026-06","name":"Claude (Anthropic)","group":"Subscriptions","amount":"108.9","currency":"EUR","status":"Review","category":"AI tools"},{"id":"id26","month":"2026-01","name":"ChatGPT (OpenAI)","group":"Subscriptions","amount":"20.8","currency":"EUR","status":"Review","category":"AI tools"},{"id":"id27","month":"2026-02","name":"ChatGPT (OpenAI)","group":"Subscriptions","amount":"20.41","currency":"EUR","status":"Review","category":"AI tools"},{"id":"id28","month":"2026-03","name":"ChatGPT (OpenAI)","group":"Subscriptions","amount":"21.03","currency":"EUR","status":"Review","category":"AI tools"},{"id":"id29","month":"2026-04","name":"ChatGPT (OpenAI)","group":"Subscriptions","amount":"20.57","currency":"EUR","status":"Review","category":"AI tools"},{"id":"id30","month":"2026-05","name":"ChatGPT (OpenAI)","group":"Subscriptions","amount":"20.88","currency":"EUR","status":"Review","category":"AI tools"},{"id":"id31","month":"2026-06","name":"ChatGPT (OpenAI)","group":"Subscriptions","amount":"20.76","currency":"EUR","status":"Review","category":"AI tools"},{"id":"id32","month":"2026-03","name":"Canva","group":"Subscriptions","amount":"19.69","currency":"EUR","status":"Keep","category":"Design tools"},{"id":"id33","month":"2026-04","name":"Canva","group":"Subscriptions","amount":"19.69","currency":"EUR","status":"Keep","category":"Design tools"},{"id":"id34","month":"2026-05","name":"Canva","group":"Subscriptions","amount":"19.69","currency":"EUR","status":"Keep","category":"Design tools"},{"id":"id35","month":"2026-06","name":"Canva","group":"Subscriptions","amount":"19.69","currency":"EUR","status":"Keep","category":"Design tools"},{"id":"id36","month":"2026-01","name":"Wix.com","group":"Subscriptions","amount":"19.36","currency":"EUR","status":"Review","category":"Web-hosting"},{"id":"id37","month":"2026-02","name":"Wix.com","group":"Subscriptions","amount":"19.36","currency":"EUR","status":"Review","category":"Web-hosting"},{"id":"id38","month":"2026-04","name":"Wix.com","group":"Subscriptions","amount":"30.25","currency":"EUR","status":"Review","category":"Web-hosting"},{"id":"id39","month":"2026-06","name":"Wix.com","group":"Subscriptions","amount":"30.25","currency":"EUR","status":"Review","category":"Web-hosting"},{"id":"id40","month":"2026-04","name":"Figma","group":"Subscriptions","amount":"24.2","currency":"EUR","status":"Keep","category":"Design tools"},{"id":"id41","month":"2026-05","name":"Figma","group":"Subscriptions","amount":"24.2","currency":"EUR","status":"Keep","category":"Design tools"},{"id":"id42","month":"2026-06","name":"Figma","group":"Subscriptions","amount":"24.2","currency":"EUR","status":"Keep","category":"Design tools"},{"id":"id43","month":"2026-04","name":"Higgsfield","group":"Subscriptions","amount":"52.29","currency":"EUR","status":"Review","category":"AI tools"},{"id":"id44","month":"2026-05","name":"Higgsfield","group":"Subscriptions","amount":"53","currency":"EUR","status":"Review","category":"AI tools"},{"id":"id45","month":"2026-01","name":"Atlist Maps","group":"Subscriptions","amount":"12.11","currency":"EUR","status":"Cut","category":"Other"},{"id":"id46","month":"2026-02","name":"Atlist Maps","group":"Subscriptions","amount":"11.94","currency":"EUR","status":"Cut","category":"Other"},{"id":"id47","month":"2026-02","name":"Squarespace","group":"Subscriptions","amount":"28.56","currency":"EUR","status":"Review","category":"Web-hosting"},{"id":"id48","month":"2026-02","name":"Dynadot (domains)","group":"Subscriptions","amount":"18.76","currency":"EUR","status":"Keep","category":"Web-hosting"},{"id":"id49","month":"2026-05","name":"Dynadot (domains)","group":"Subscriptions","amount":"3.93","currency":"EUR","status":"Keep","category":"Web-hosting"},{"id":"id50","month":"2026-05","name":"GoDaddy","group":"Subscriptions","amount":"13.5","currency":"EUR","status":"Keep","category":"Web-hosting"},{"id":"id51","month":"2026-01","name":"PayPal (lillysteffen20)","group":"Personal","amount":"7","currency":"EUR","status":"","cat":"Other"},{"id":"id52","month":"2026-01","name":"PayPal (lilia.schreine)","group":"Personal","amount":"5","currency":"EUR","status":"","cat":"Other"},{"id":"id53","month":"2026-01","name":"Zalando","group":"Personal","amount":"81.65","currency":"EUR","status":"","cat":"Shopping"},{"id":"id54","month":"2026-01","name":"Preply (German lessons)","group":"Personal","amount":"34.26","currency":"EUR","status":"","cat":"Other"},{"id":"id55","month":"2026-01","name":"ASOS","group":"Personal","amount":"45.9","currency":"EUR","status":"","cat":"Shopping"},{"id":"id56","month":"2026-01","name":"Preply (German lessons)","group":"Personal","amount":"288.1","currency":"EUR","status":"","cat":"Other"},{"id":"id57","month":"2026-01","name":"Zalando","group":"Personal","amount":"33.71","currency":"EUR","status":"","cat":"Shopping"},{"id":"id58","month":"2026-01","name":"Delux Kosmetik","group":"Personal","amount":"30","currency":"EUR","status":"","cat":"Beauty"},{"id":"id59","month":"2026-02","name":"PayPal (dimitripankin)","group":"Personal","amount":"5","currency":"EUR","status":"","cat":"Other"},{"id":"id60","month":"2026-02","name":"PayPal (elsahaalang)","group":"Personal","amount":"80","currency":"EUR","status":"","cat":"Other"},{"id":"id61","month":"2026-02","name":"EDEKA","group":"Personal","amount":"24.73","currency":"EUR","status":"","cat":"Groceries"},{"id":"id62","month":"2026-02","name":"Lieferando","group":"Personal","amount":"15.56","currency":"EUR","status":"","cat":"Eating out"},{"id":"id63","month":"2026-02","name":"EDEKA","group":"Personal","amount":"23.62","currency":"EUR","status":"","cat":"Groceries"},{"id":"id64","month":"2026-02","name":"Loop Earplugs","group":"Personal","amount":"40.46","currency":"EUR","status":"","cat":"Shopping"},{"id":"id65","month":"2026-02","name":"Bahnhofkiosk Wagner","group":"Personal","amount":"1.5","currency":"EUR","status":"","cat":"Eating out"},{"id":"id66","month":"2026-02","name":"Museo del Jamón","group":"Personal","amount":"7.65","currency":"EUR","status":"","cat":"Eating out"},{"id":"id67","month":"2026-02","name":"Orense","group":"Personal","amount":"79.9","currency":"EUR","status":"","cat":"Eating out"},{"id":"id68","month":"2026-02","name":"De Raimundo","group":"Personal","amount":"10.6","currency":"EUR","status":"","cat":"Eating out"},{"id":"id69","month":"2026-02","name":"Espresso House","group":"Personal","amount":"18.5","currency":"EUR","status":"","cat":"Eating out"},{"id":"id70","month":"2026-02","name":"Blumenparadies","group":"Personal","amount":"29.9","currency":"EUR","status":"","cat":"Shopping"},{"id":"id71","month":"2026-02","name":"Preply (German lessons)","group":"Personal","amount":"284.75","currency":"EUR","status":"","cat":"Other"},{"id":"id72","month":"2026-03","name":"REWE","group":"Personal","amount":"2.99","currency":"EUR","status":"","cat":"Groceries"},{"id":"id73","month":"2026-03","name":"Suop Mobile (phone)","group":"Personal","amount":"3.45","currency":"EUR","status":"","cat":"Other"},{"id":"id74","month":"2026-03","name":"Budni","group":"Personal","amount":"4.29","currency":"EUR","status":"","cat":"Beauty"},{"id":"id75","month":"2026-03","name":"EDEKA","group":"Personal","amount":"11.99","currency":"EUR","status":"","cat":"Groceries"},{"id":"id76","month":"2026-03","name":"Budni","group":"Personal","amount":"3.68","currency":"EUR","status":"","cat":"Beauty"},{"id":"id77","month":"2026-03","name":"Rang Rang","group":"Personal","amount":"5.5","currency":"EUR","status":"","cat":"Eating out"},{"id":"id78","month":"2026-03","name":"Budni","group":"Personal","amount":"3.48","currency":"EUR","status":"","cat":"Beauty"},{"id":"id79","month":"2026-03","name":"Suedpol Hamburg","group":"Personal","amount":"25","currency":"EUR","status":"","cat":"Health"},{"id":"id80","month":"2026-03","name":"Suedpol Hamburg","group":"Personal","amount":"7.7","currency":"EUR","status":"","cat":"Health"},{"id":"id81","month":"2026-03","name":"Suedpol Hamburg","group":"Personal","amount":"20.9","currency":"EUR","status":"","cat":"Health"},{"id":"id82","month":"2026-03","name":"Flyeralarm","group":"Personal","amount":"51.17","currency":"EUR","status":"","cat":"Other"},{"id":"id83","month":"2026-03","name":"Uber","group":"Personal","amount":"49.05","currency":"EUR","status":"","cat":"Transport"},{"id":"id84","month":"2026-03","name":"Ara Apotheke","group":"Personal","amount":"41.95","currency":"EUR","status":"","cat":"Health"},{"id":"id85","month":"2026-04","name":"Transport (Mastercard)","group":"Personal","amount":"6","currency":"EUR","status":"","cat":"Transport"},{"id":"id86","month":"2026-04","name":"OVpay","group":"Personal","amount":"8","currency":"EUR","status":"","cat":"Transport"},{"id":"id87","month":"2026-04","name":"Suop Mobile (phone)","group":"Personal","amount":"6.2","currency":"EUR","status":"","cat":"Other"},{"id":"id88","month":"2026-04","name":"Uber Eats","group":"Personal","amount":"14.85","currency":"EUR","status":"","cat":"Eating out"},{"id":"id89","month":"2026-04","name":"Subway","group":"Personal","amount":"8","currency":"EUR","status":"","cat":"Eating out"},{"id":"id90","month":"2026-04","name":"OVpay","group":"Personal","amount":"2.24","currency":"EUR","status":"","cat":"Transport"},{"id":"id91","month":"2026-04","name":"Uber","group":"Personal","amount":"19.38","currency":"EUR","status":"","cat":"Transport"},{"id":"id92","month":"2026-04","name":"Francisco Fernández","group":"Personal","amount":"10.8","currency":"EUR","status":"","cat":"Other"},{"id":"id93","month":"2026-04","name":"Primaprix","group":"Personal","amount":"1.35","currency":"EUR","status":"","cat":"Groceries"},{"id":"id94","month":"2026-04","name":"Ls Luicellas Ice Cream","group":"Personal","amount":"5.2","currency":"EUR","status":"","cat":"Eating out"},{"id":"id95","month":"2026-04","name":"Zalando","group":"Personal","amount":"57.35","currency":"EUR","status":"","cat":"Shopping"},{"id":"id96","month":"2026-04","name":"Budni","group":"Personal","amount":"12.99","currency":"EUR","status":"","cat":"Beauty"},{"id":"id97","month":"2026-04","name":"Mónica Ruiz Centro Estético","group":"Personal","amount":"150","currency":"EUR","status":"","cat":"Beauty"},{"id":"id98","month":"2026-05","name":"Suop Mobile (phone)","group":"Personal","amount":"2.89","currency":"EUR","status":"","cat":"Other"},{"id":"id99","month":"2026-05","name":"Uber","group":"Personal","amount":"15.23","currency":"EUR","status":"","cat":"Transport"},{"id":"id100","month":"2026-05","name":"Renfe","group":"Personal","amount":"93.6","currency":"EUR","status":"","cat":"Transport"},{"id":"id101","month":"2026-05","name":"Renfe","group":"Personal","amount":"93.6","currency":"EUR","status":"","cat":"Transport"},{"id":"id102","month":"2026-05","name":"Bizum (Patricia)","group":"Personal","amount":"32","currency":"EUR","status":"","cat":"Other"},{"id":"id103","month":"2026-05","name":"Ana Vázquez","group":"Personal","amount":"4.62","currency":"EUR","status":"","cat":"Other"},{"id":"id104","month":"2026-05","name":"Ana Vázquez","group":"Personal","amount":"5.46","currency":"EUR","status":"","cat":"Other"},{"id":"id105","month":"2026-05","name":"Centro Médico Avda 101","group":"Personal","amount":"35","currency":"EUR","status":"","cat":"Health"},{"id":"id106","month":"2026-05","name":"DIA","group":"Personal","amount":"1.48","currency":"EUR","status":"","cat":"Groceries"},{"id":"id107","month":"2026-05","name":"Honest Greens","group":"Personal","amount":"35.4","currency":"EUR","status":"","cat":"Eating out"},{"id":"id108","month":"2026-05","name":"Gelateria La Romana","group":"Personal","amount":"12.4","currency":"EUR","status":"","cat":"Eating out"},{"id":"id109","month":"2026-05","name":"De La Rubia y Madero","group":"Personal","amount":"1.5","currency":"EUR","status":"","cat":"Eating out"},{"id":"id110","month":"2026-05","name":"AhorraMas","group":"Personal","amount":"37.56","currency":"EUR","status":"","cat":"Groceries"},{"id":"id111","month":"2026-05","name":"Uniqlo (Madrid)","group":"Personal","amount":"59.7","currency":"EUR","status":"","cat":"Shopping"},{"id":"id112","month":"2026-05","name":"Heladería Rosario Pino","group":"Personal","amount":"9.6","currency":"EUR","status":"","cat":"Eating out"},{"id":"id113","month":"2026-05","name":"La Pescadería","group":"Personal","amount":"43","currency":"EUR","status":"","cat":"Groceries"},{"id":"id114","month":"2026-05","name":"Meller","group":"Personal","amount":"64","currency":"EUR","status":"","cat":"Shopping"},{"id":"id115","month":"2026-05","name":"MUC Airport Gastro","group":"Personal","amount":"8","currency":"EUR","status":"","cat":"Eating out"},{"id":"id116","month":"2026-05","name":"Druni","group":"Personal","amount":"41.63","currency":"EUR","status":"","cat":"Beauty"},{"id":"id117","month":"2026-05","name":"Sephora","group":"Personal","amount":"13.99","currency":"EUR","status":"","cat":"Beauty"},{"id":"id118","month":"2026-05","name":"Lufthansa (flight)","group":"Personal","amount":"340.87","currency":"EUR","status":"","cat":"Transport"},{"id":"id119","month":"2026-06","name":"Uniqlo (Barcelona)","group":"Personal","amount":"72.7","currency":"EUR","status":"","cat":"Shopping"},{"id":"id120","month":"2026-06","name":"Madrid Suc 72","group":"Personal","amount":"3.7","currency":"EUR","status":"","cat":"Groceries"},{"id":"id121","month":"2026-06","name":"Alimentación Xioyan","group":"Personal","amount":"1.8","currency":"EUR","status":"","cat":"Groceries"},{"id":"id122","month":"2026-06","name":"Super Bazar","group":"Personal","amount":"1.2","currency":"EUR","status":"","cat":"Groceries"},{"id":"id123","month":"2026-06","name":"Cultura Cannábica","group":"Personal","amount":"16","currency":"EUR","status":"","cat":"Other"},{"id":"id124","month":"2026-06","name":"Mumadi","group":"Personal","amount":"18","currency":"EUR","status":"","cat":"Eating out"},{"id":"id125","month":"2026-06","name":"Centro Médico Avda 101","group":"Personal","amount":"22","currency":"EUR","status":"","cat":"Health"},{"id":"id126","month":"2026-06","name":"Mini Supermercado","group":"Personal","amount":"1.9","currency":"EUR","status":"","cat":"Groceries"},{"id":"id127","month":"2026-06","name":"C761 C D Vicálvaro","group":"Personal","amount":"161.8","currency":"EUR","status":"","cat":"Groceries"},{"id":"id128","month":"2026-06","name":"Super Bazar","group":"Personal","amount":"7.9","currency":"EUR","status":"","cat":"Groceries"},{"id":"id129","month":"2026-06","name":"Mx Zone","group":"Personal","amount":"75","currency":"EUR","status":"","cat":"Other"},{"id":"id130","month":"2026-06","name":"Fcia Ana Córdoba","group":"Personal","amount":"24.1","currency":"EUR","status":"","cat":"Health"},{"id":"id131","month":"2026-06","name":"Voxi (mobile)","group":"Subscriptions","amount":"10","currency":"GBP","status":"Keep","category":"Phone/mobile"}], savings:[{"id":"id131","month":"2026-01","account":"Wise Savings (Interest)","type":"savings","balance":"976.46","currency":"EUR"},{"id":"id132","month":"2026-02","account":"Wise Savings (Interest)","type":"savings","balance":"1375.93","currency":"EUR"},{"id":"id133","month":"2026-03","account":"Wise Savings (Interest)","type":"savings","balance":"1105.93","currency":"EUR"},{"id":"id134","month":"2026-04","account":"Wise Savings (Interest)","type":"savings","balance":"1805.93","currency":"EUR"},{"id":"id135","month":"2026-05","account":"Wise Savings (Interest)","type":"savings","balance":"2100.93","currency":"EUR"},{"id":"id136","month":"2026-06","account":"Wise Savings (Interest)","type":"savings","balance":"1906.73","currency":"EUR"},{"id":"id137","month":"2026-01","account":"Monzo Puerquito (pot)","type":"savings","balance":"930.58","currency":"EUR"},{"id":"id138","month":"2026-02","account":"Monzo Puerquito (pot)","type":"savings","balance":"932.53","currency":"EUR"},{"id":"id139","month":"2026-03","account":"Monzo Puerquito (pot)","type":"savings","balance":"1164.13","currency":"EUR"},{"id":"id140","month":"2026-04","account":"Monzo Puerquito (pot)","type":"savings","balance":"1166.79","currency":"EUR"},{"id":"id141","month":"2026-05","account":"Monzo Puerquito (pot)","type":"savings","balance":"1169.41","currency":"EUR"},{"id":"id142","month":"2026-06","account":"Monzo Puerquito (pot)","type":"savings","balance":"1172.1","currency":"EUR"},{"id":"id143","month":"2026-01","account":"Wise Investments (iShares)","type":"investment","balance":"1020.34","currency":"EUR"},{"id":"id144","month":"2026-02","account":"Wise Investments (iShares)","type":"investment","balance":"1420.34","currency":"EUR"},{"id":"id145","month":"2026-03","account":"Wise Investments (iShares)","type":"investment","balance":"1420.34","currency":"EUR"},{"id":"id146","month":"2026-04","account":"Wise Investments (iShares)","type":"investment","balance":"1420.34","currency":"EUR"},{"id":"id147","month":"2026-05","account":"Wise Investments (iShares)","type":"investment","balance":"1220.34","currency":"EUR"},{"id":"id148","month":"2026-06","account":"Wise Investments (iShares)","type":"investment","balance":"1419.71","currency":"EUR"},{"id":"id149","month":"2026-01","account":"Monzo Flex (credit card)","type":"credit card","balance":"487.18","currency":"EUR"},{"id":"id150","month":"2026-02","account":"Monzo Flex (credit card)","type":"credit card","balance":"369.45","currency":"EUR"},{"id":"id151","month":"2026-03","account":"Monzo Flex (credit card)","type":"credit card","balance":"170.17","currency":"EUR"},{"id":"id152","month":"2026-04","account":"Monzo Flex (credit card)","type":"credit card","balance":"197.38","currency":"EUR"},{"id":"id153","month":"2026-05","account":"Monzo Flex (credit card)","type":"credit card","balance":"433.55","currency":"EUR"},{"id":"id154","month":"2026-06","account":"Monzo Flex (credit card)","type":"credit card","balance":"284.35","currency":"EUR"}] };
+  }
+
+  componentDidMount(){
+    try { const r = localStorage.getItem(KEY); if (r) this.setState(this.fromData(JSON.parse(r))); } catch(e){}
+  }
+  componentDidUpdate(){
+    try { localStorage.setItem(KEY, JSON.stringify(this.dataOut())); } catch(e){}
+  }
+
+  uid(){ return 'id' + Math.random().toString(36).slice(2,9); }
+  thisMonth(){ const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0'); }
+
+  /* mutations */
+  upd(coll,id,field,val){ this.setState(s => ({ [coll]: s[coll].map(r => r.id===id ? {...r,[field]:val} : r) })); }
+  del(coll,id){ this.setState(s => ({ [coll]: s[coll].filter(r => r.id!==id) })); }
+  add(coll,blank){ this.setState(s => ({ [coll]: [...s[coll], {...blank, id:this.uid()}] })); }
+  toggleSeries(key){ this.setState(s => { const h={...s.hidden}; if(h[key]) delete h[key]; else h[key]=true; return {hidden:h}; }); }
+
+  /* numbers */
+  num(v){ const n = parseFloat(v); return isFinite(n) ? n : 0; }
+  rate(){ const r = parseFloat(this.state.gbpEur); return isFinite(r) && r>0 ? r : 1; }
+  toEur(a,c){ const v = this.num(a); return c==='GBP' ? v*this.rate() : v; }
+  money(x,dec){ dec = dec||0; const neg = x<0; const s = Math.abs(x).toLocaleString('en-US',{minimumFractionDigits:dec,maximumFractionDigits:dec}); return (neg?'\u2212\u20ac':'\u20ac')+s; }
+
+  /* month helpers */
+  monthShort(m){ const M=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']; const t=/^(\d{4})-(\d{2})/.exec(m||''); return t?M[+t[2]-1]:(m||'\u2014'); }
+  monthFull(m){ const M=['January','February','March','April','May','June','July','August','September','October','November','December']; const t=/^(\d{4})-(\d{2})/.exec(m||''); return t?M[+t[2]-1]+' '+t[1]:(m||'\u2014'); }
+
+  /* data io */
+  dataOut(){ const {gbpEur,income,expenses,savings} = this.state; return { version:1, gbpEur, income, expenses, savings }; }
+  withIds(a){ return Array.isArray(a) ? a.map(r => (r&&r.id)?r:{...r,id:this.uid()}) : []; }
+  fromData(d){ d = d||{}; return { gbpEur: d.gbpEur!=null?String(d.gbpEur):'1.16', income:this.withIds(d.income), expenses:this.normExp(this.withIds(d.expenses)), savings:this.withIds(d.savings) }; }
+  subCatMap(){ return {
+    'Claude (Anthropic)':'AI tools','ChatGPT (OpenAI)':'AI tools','Higgsfield':'AI tools',
+    'Canva':'Design tools','Figma':'Design tools',
+    'Wix.com':'Web-hosting','Squarespace':'Web-hosting','GoDaddy':'Web-hosting','Dynadot (domains)':'Web-hosting',
+    'Voxi (mobile)':'Phone/mobile','Atlist Maps':'Other'
+  }; }
+  persCatMap(){ return {
+    'PayPal (lillysteffen20)':'Other','PayPal (lilia.schreine)':'Other','PayPal (dimitripankin)':'Other','PayPal (elsahaalang)':'Other',
+    'Zalando':'Shopping','ASOS':'Shopping','Uniqlo (Madrid)':'Shopping','Uniqlo (Barcelona)':'Shopping','Meller':'Shopping','Loop Earplugs':'Shopping','Blumenparadies':'Shopping','Flyeralarm':'Other',
+    'Preply (German lessons)':'Other',
+    'Delux Kosmetik':'Beauty','Druni':'Beauty','Sephora':'Beauty','Budni':'Beauty','Mónica Ruiz Centro Estético':'Beauty',
+    'EDEKA':'Groceries','REWE':'Groceries','DIA':'Groceries','AhorraMas':'Groceries','Primaprix':'Groceries','Alimentación Xioyan':'Groceries','Super Bazar':'Groceries','Mini Supermercado':'Groceries','La Pescadería':'Groceries','Madrid Suc 72':'Groceries',
+    'C761 C D Vicálvaro':'Health',
+    'Lieferando':'Eating out','Museo del Jamón':'Eating out','Orense':'Eating out','De Raimundo':'Eating out','Espresso House':'Eating out','Rang Rang':'Eating out','Uber Eats':'Eating out','Subway':'Eating out','Ls Luicellas Ice Cream':'Eating out','Honest Greens':'Eating out','Gelateria La Romana':'Eating out','Heladería Rosario Pino':'Eating out','MUC Airport Gastro':'Eating out','De La Rubia y Madero':'Eating out','Bahnhofkiosk Wagner':'Eating out','Mumadi':'Eating out',
+    'Uber':'Transport','OVpay':'Transport','Transport (Mastercard)':'Transport','Renfe':'Transport','Lufthansa (flight)':'Transport',
+    'Ara Apotheke':'Health','Centro Médico Avda 101':'Health','Fcia Ana Córdoba':'Health','Suedpol Hamburg':'Health',
+    'Suop Mobile (phone)':'Other','Francisco Fernández':'Other','Bizum (Patricia)':'Other','Ana Vázquez':'Other','Cultura Cannábica':'Other','Mx Zone':'Other'
+  }; }
+  normExp(a){
+    const pm = this.persCatMap(), sm = this.subCatMap();
+    return a.map(x => {
+      const nm = (x.name||'').trim();
+      if (x.group==='Personal'){ const c = pm[nm] || x.cat || 'Other'; return {...x, cat:c}; }
+      if (x.group==='Subscriptions'){ const c = sm[nm] || x.category || 'Other'; return {...x, category:c}; }
+      return x;
+    });
+  }
+
+  /* nice axis max */
+  niceMaxOf(arr){
+    const vals = arr.filter(v=>isFinite(v));
+    const rawMax = Math.max(1, ...vals);
+    const step = rawMax>40000?20000:rawMax>20000?10000:rawMax>8000?5000:rawMax>4000?2000:rawMax>2000?1000:rawMax>800?500:rawMax>300?100:rawMax>80?50:10;
+    return Math.max(step, Math.ceil(rawMax/step)*step);
+  }
+
+  /* unified chart dispatcher. series already filtered to visible. */
+  buildBigChart(months, series, opts){
+    const _h = React.createElement;
+    if (months.length===0 || series.length===0){
+      return _h('div',{style:{font:'400 14px var(--font-body)',color:'var(--mute)',textAlign:'center',padding:'70px 0'}}, months.length===0 ? 'No data yet — add income, expenses or balances in the other tabs.' : 'No series selected. Tap a chip above to show one.');
+    }
+    return opts.type==='pie' ? this.buildPie(series, opts) : this.buildBarLine(months, series, opts);
+  }
+
+  /* bar / line with dual axis: flows (left) vs balances (right, dashed) */
+  buildBarLine(months, series, opts){
+    const _h = React.createElement;
+    const type = opts.type;
+    const flows = series.filter(s=>s.kind==='flow');
+    const bals  = series.filter(s=>s.kind==='balance');
+    const haveFlow = flows.length>0, haveBal = bals.length>0, dual = haveFlow && haveBal;
+    const n = months.length;
+    const W=1000, padL=72, padR= dual?72:26, padT=24, plotH=320, plotW=W-padL-padR, baseY=padT+plotH;
+    const bandW = plotW/n;
+    const px = i => padL + (i+0.5)*bandW;
+    const flowMax = this.niceMaxOf(haveFlow ? [].concat(...flows.map(s=>months.map(s.val))) : [0]);
+    const balMax  = this.niceMaxOf(haveBal  ? [].concat(...bals.map(s=>months.map(s.val)))  : [0]);
+    const leftMax = haveFlow ? flowMax : balMax;
+    const pyL = v => padT + (1 - v/leftMax)*plotH;
+    const pyR = v => padT + (1 - v/balMax)*plotH;
+    const els=[], steps=4;
+    for (let k=0;k<=steps;k++){
+      const y = padT + k/steps*plotH;
+      els.push(_h('line',{key:'g'+k,x1:padL,y1:y,x2:W-padR,y2:y,stroke:'rgba(45,45,45,.09)',strokeWidth:1}));
+      els.push(_h('text',{key:'lt'+k,x:padL-10,y:y+3.5,fontSize:11,fill:'#8f8f8f',textAnchor:'end',fontFamily:'Poppins,sans-serif'}, this.money(leftMax*(steps-k)/steps,0)));
+      if (dual) els.push(_h('text',{key:'rt'+k,x:W-padR+10,y:y+3.5,fontSize:11,fill:'#8f8f8f',textAnchor:'start',fontFamily:'Poppins,sans-serif'}, this.money(balMax*(steps-k)/steps,0)));
+    }
+    months.forEach((m,i)=> els.push(_h('text',{key:'x'+i,x:px(i),y:baseY+22,fontSize:11,fill:'#5c5c5c',textAnchor:'middle',fontFamily:'Poppins,sans-serif'}, this.monthShort(m))));
+    const midY = padT+plotH/2;
+    els.push(_h('text',{key:'lat',x:15,y:midY,fontSize:10,fill:'#9a9a9a',textAnchor:'middle',fontFamily:'Poppins,sans-serif',letterSpacing:'.08em',transform:'rotate(-90 15 '+midY+')'}, (haveFlow?'MONTHLY FLOWS (€)':'MONTH-END BALANCE (€)')));
+    if (dual) els.push(_h('text',{key:'rat',x:W-15,y:midY,fontSize:10,fill:'#9a9a9a',textAnchor:'middle',fontFamily:'Poppins,sans-serif',letterSpacing:'.08em',transform:'rotate(90 '+(W-15)+' '+midY+')'}, 'MONTH-END BALANCE (€)'));
+    if (type==='bar' && haveFlow){
+      const groupW = bandW*0.74, bw = groupW/flows.length;
+      months.forEach((m,i)=> flows.forEach((s,si)=>{
+        const v=s.val(m), x=px(i)-groupW/2+si*bw, y=pyL(v), h=Math.max(0,baseY-y);
+        els.push(_h('rect',{key:'b'+i+'_'+s.key,x:x+1,y,width:Math.max(1.5,bw-2),height:h,rx:Math.min(3,Math.max(0,(bw-2)/2)),fill:s.color}));
+      }));
+    }
+    const drawLine = (s, py, dashed)=>{
+      const pts = months.map((m,i)=>({x:px(i),y:py(s.val(m))}));
+      if (pts.length>1) els.push(_h('polyline',{key:'pl'+s.key,points:pts.map(p=>p.x.toFixed(1)+','+p.y.toFixed(1)).join(' '),fill:'none',stroke:s.color,strokeWidth:2.6,strokeLinejoin:'round',strokeLinecap:'round',strokeDasharray:dashed?'6 5':'none'}));
+      pts.forEach((p,di)=> els.push(_h('circle',{key:'c'+s.key+'_'+di,cx:p.x,cy:p.y,r:3.4,fill:'#fff',stroke:s.color,strokeWidth:2})));
+    };
+    if (type==='line' && haveFlow) flows.forEach(s=>drawLine(s, pyL, false));
+    if (haveBal) bals.forEach(s=>drawLine(s, dual?pyR:pyL, true));
+    return _h('svg',{viewBox:'0 0 '+W+' '+(baseY+34),style:{width:'100%',height:'auto',display:'block'},preserveAspectRatio:'xMidYMid meet'}, els);
+  }
+
+  /* reusable donut: items=[{name,color,v}] (caller sorts). opts={big, emptyText} */
+  makeDonut(items, opts){
+    const _h = React.createElement;
+    opts = opts||{};
+    const big = !!opts.big;
+    const total = items.reduce((t,x)=>t+x.v,0);
+    const size = big?240:200, r=size/2, rO=r-6, rI=r*(big?0.6:0.62), cx=r, cy=r;
+    let arcs;
+    if (items.length===0) arcs=[_h('circle',{key:'e',cx,cy,r:(rO+rI)/2,fill:'none',stroke:'var(--line)',strokeWidth:rO-rI})];
+    else if (items.length===1) arcs=[_h('circle',{key:'f',cx,cy,r:(rO+rI)/2,fill:'none',stroke:items[0].color,strokeWidth:rO-rI})];
+    else { let a=-Math.PI/2; arcs=[]; items.forEach((it,idx)=>{
+      const fr=it.v/total, a2=a+fr*Math.PI*2, lg=fr>0.5?1:0;
+      const x1=cx+rO*Math.cos(a),y1=cy+rO*Math.sin(a),x2=cx+rO*Math.cos(a2),y2=cy+rO*Math.sin(a2);
+      const xi2=cx+rI*Math.cos(a2),yi2=cy+rI*Math.sin(a2),xi1=cx+rI*Math.cos(a),yi1=cy+rI*Math.sin(a);
+      arcs.push(_h('path',{key:idx,d:'M'+x1.toFixed(1)+' '+y1.toFixed(1)+' A'+rO+' '+rO+' 0 '+lg+' 1 '+x2.toFixed(1)+' '+y2.toFixed(1)+' L'+xi2.toFixed(1)+' '+yi2.toFixed(1)+' A'+rI+' '+rI+' 0 '+lg+' 0 '+xi1.toFixed(1)+' '+yi1.toFixed(1)+' Z',fill:it.color,stroke:'#fff',strokeWidth:2}));
+      a=a2;
+    }); }
+    const svg = _h('svg',{key:'svg',width:size,height:size,viewBox:'0 0 '+size+' '+size,style:{flex:'0 0 auto'}},[
+      arcs,
+      _h('text',{key:'tv',x:cx,y:cy+6,fontSize:big?20:18,fill:'#2d2d2d',textAnchor:'middle',fontFamily:'Poppins,sans-serif',fontWeight:600}, this.money(total,0))
+    ]);
+    const legend = _h('div',{key:'lg',style:{display:'flex',flexDirection:'column',gap:'8px',minWidth:'190px',flex:'1 1 200px'}},
+      items.length ? items.map((it,idx)=>_h('div',{key:idx,style:{display:'flex',alignItems:'center',gap:'8px',font:'400 13px var(--font-body)'}},[
+        _h('span',{key:'d',style:{width:'11px',height:'11px',borderRadius:'3px',background:it.color,flex:'0 0 auto'}}),
+        _h('span',{key:'n',style:{flex:'1',minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}, it.name),
+        _h('span',{key:'v',style:{fontWeight:600,color:'#2d2d2d'}}, this.money(it.v,0)),
+        _h('span',{key:'p',style:{color:'#8f8f8f',fontSize:'11px',width:'42px',textAlign:'right'}}, total?Math.round(it.v/total*100)+'%':'')
+      ])) : _h('div',{style:{font:'400 13px var(--font-body)',color:'var(--mute)'}}, opts.emptyText||'No data this month.')
+    );
+    return _h('div',{style:{display:'flex',alignItems:'center',gap:'18px',flexWrap:'wrap'}},[svg,legend]);
+  }
+
+  /* one month's flows as a donut; balances in a separate donut */
+  buildPie(series, opts){
+    const _h = React.createElement;
+    const month = opts.pieMonth;
+    const pick = kind => series.filter(s=>s.kind===kind).map(s=>({name:s.name,color:s.color,v:s.val(month)})).filter(s=>s.v>0.005);
+    const flows = pick('flow'), bals = pick('balance');
+    const blocks=[ _h('div',{key:'fb',style:{flex:'1 1 400px'}},[
+      _h('div',{key:'h',style:{font:'600 13px var(--font-body)',marginBottom:'12px'}}, 'Flows · '+this.monthFull(month)),
+      this.makeDonut(flows, {big:true})
+    ]) ];
+    if (bals.length) blocks.push(_h('div',{key:'bb',style:{flex:'0 1 320px'}},[
+      _h('div',{key:'h',style:{font:'600 13px var(--font-body)',marginBottom:'12px'}}, 'Balances (separate)'),
+      this.makeDonut(bals, {big:false})
+    ]));
+    return _h('div',{style:{display:'flex',gap:'36px',flexWrap:'wrap',alignItems:'flex-start',padding:'8px 0'}}, blocks);
+  }
+
+  /* PIE 1 — personal categories + Joint account (one slice), for one month */
+  buildPersonalPie(month){
+    const E = this.state.expenses;
+    const PCOL = { 'Groceries':'#2f9e68','Eating out':'#f5a623','Transport':'#6a8dff','Health':'#e0566f','Beauty':'#c77dff','Shopping':'#1ec8c8','Other':'#b0b0b0' };
+    const map = {};
+    E.filter(x => x.month===month && x.group==='Personal').forEach(x=>{
+      const c = x.cat || 'Other'; map[c] = (map[c]||0) + this.toEur(x.amount,x.currency);
+    });
+    const items = Object.keys(map).map(k=>({ name:k, color:PCOL[k]||'#b0b0b0', v:map[k] }));
+    const joint = E.filter(x => x.month===month && x.group==='Joint account').reduce((t,x)=>t+this.toEur(x.amount,x.currency),0);
+    if (joint>0.005) items.push({ name:'Joint account', color:'#ef6dc4', v:joint });
+    items.sort((a,b)=>b.v-a.v);
+    return this.makeDonut(items.filter(x=>x.v>0.005), {big:true, emptyText:'No personal or joint spend this month.'});
+  }
+
+  /* PIE 2 — subscriptions by name, for one month */
+  buildSubsPie(month){
+    const E = this.state.expenses;
+    const PAL = ['#9b6dff','#6a8dff','#ef6dc4','#f5a623','#2f9e68','#1ec8c8','#e0566f','#ff99da','#b08968','#8f8f8f','#7b6cff','#3aa6a0'];
+    const map = {};
+    E.filter(x => x.month===month && x.group==='Subscriptions').forEach(x=>{
+      const k = (x.name||'').trim() || '(unnamed)'; map[k] = (map[k]||0) + this.toEur(x.amount,x.currency);
+    });
+    const items = Object.keys(map).map(k=>({ name:k, v:map[k] })).filter(x=>x.v>0.005).sort((a,b)=>b.v-a.v)
+      .map((x,i)=>({ name:x.name, color:PAL[i%PAL.length], v:x.v }));
+    return this.makeDonut(items, {big:true, emptyText:'No subscriptions billed this month.'});
+  }
+
+  /* INCOME — where the money comes from, by source name, active sources, all months */
+  buildIncomePie(){
+    const I = this.state.income;
+    const PAL = ['#6a8dff','#2f9e68','#f5a623','#c77dff','#ef6dc4','#1ec8c8','#e0566f','#9b6dff','#b08968','#3aa6a0','#ff99da','#8f8f8f'];
+    const map = {};
+    I.filter(x => x.active).forEach(x=>{
+      const k = (x.source||'').trim() || '(unnamed)'; map[k] = (map[k]||0) + this.toEur(x.amount,x.currency);
+    });
+    const items = Object.keys(map).map(k=>({ name:k, v:map[k] })).filter(x=>x.v>0.005).sort((a,b)=>b.v-a.v)
+      .map((x,i)=>({ name:x.name, color:PAL[i%PAL.length], v:x.v }));
+    return this.makeDonut(items, {big:true, emptyText:'No active income yet.'});
+  }
+
+  renderVals(){
+    const I=this.state.income, E=this.state.expenses, S=this.state.savings, tab=this.state.tab;
+    const showCharts = this.props.showCharts !== false;
+    const chartFill = !!this.props.chartFill;
+
+    /* ---- month universe ---- */
+    const mset = new Set();
+    [I,E,S].forEach(arr => arr.forEach(r => { const m=(r.month||'').trim(); if(m) mset.add(m); }));
+    const months = [...mset].sort();
+    const hasMonths = months.length>0;
+    const effMonth = (this.state.selMonth && mset.has(this.state.selMonth)) ? this.state.selMonth : (months[months.length-1] || '');
+
+    /* ---- per-month aggregates ---- */
+    const incMonth = m => I.filter(x => x.active && x.month===m).reduce((t,x)=>t+this.toEur(x.amount,x.currency),0);
+    const expMonth = m => E.filter(x => x.month===m).reduce((t,x)=>t+this.toEur(x.amount,x.currency),0);
+    const expGroupMonth = (m,g) => E.filter(x => x.month===m && x.group===g).reduce((t,x)=>t+this.toEur(x.amount,x.currency),0);
+    const savTypeMonth = (m,ty) => S.filter(r => r.type===ty && r.month===m).reduce((t,r)=>t+this.toEur(r.balance,r.currency),0);
+
+    /* ---- current balances (latest month per account, per type) ---- */
+    const latestByType = ty => {
+      const map = {};
+      S.filter(r => r.type===ty).forEach(r => { const k=(r.account||'')+'#'+ty; if(!map[k] || String(r.month)>=String(map[k].m)) map[k]={m:r.month, v:this.toEur(r.balance,r.currency)}; });
+      return Object.values(map).reduce((t,x)=>t+x.v,0);
+    };
+    const totalSavings = latestByType('savings');
+    const totalInvest = latestByType('investment');
+    const totalCard = Math.abs(latestByType('credit card'));
+    const netPosition = totalSavings + totalInvest - totalCard;
+
+    /* ---- selected-month flow ---- */
+    const tmIncome = incMonth(effMonth);
+    const tmExpense = expMonth(effMonth);
+    const surplus = tmIncome - tmExpense;
+    const deficit = surplus<0 ? -surplus : 0;
+    const runway = deficit>0 ? totalSavings/deficit : Infinity;
+
+    const surplusColor = surplus>=0 ? 'var(--success)' : 'var(--error)';
+    const surplusStr = (surplus>=0?'+\u20ac':'\u2212\u20ac') + Math.abs(Math.round(surplus)).toLocaleString('en-US');
+    const runwayHeadline = deficit>0 ? runway.toFixed(1) : '\u221e';
+    const runwayUnit = deficit>0 ? 'months' : 'in surplus';
+    const runwayColor = deficit>0 ? (runway<6 ? 'var(--error)' : 'var(--ink)') : 'var(--success)';
+
+    /* ---- unified chart ---- */
+    const SERIES = [
+      { key:'income', name:'Income',        color:'#6a8dff', kind:'flow',    val:m=>incMonth(m) },
+      { key:'joint',  name:'Joint account', color:'#ef6dc4', kind:'flow',    val:m=>expGroupMonth(m,'Joint account') },
+      { key:'personal',name:'Personal',     color:'#f5a623', kind:'flow',    val:m=>expGroupMonth(m,'Personal') },
+      { key:'subs',   name:'Subscriptions', color:'#9b6dff', kind:'flow',    val:m=>expGroupMonth(m,'Subscriptions') },
+      { key:'savings',name:'Savings',       color:'#2f9e68', kind:'balance', val:m=>savTypeMonth(m,'savings') },
+      { key:'invest', name:'Investments',   color:'#1ec8c8', kind:'balance', val:m=>savTypeMonth(m,'investment') }
+    ];
+    const visible = {}; SERIES.forEach(s=>visible[s.key] = !this.state.hidden[s.key]);
+    const visSeries = SERIES.filter(s=>visible[s.key]);
+    const chartType = this.state.chartType;
+    const effPieMonth = (this.state.pieMonth && mset.has(this.state.pieMonth)) ? this.state.pieMonth : (months[months.length-1] || '');
+
+    const seriesChips = SERIES.map(s=>{
+      const on = visible[s.key];
+      return { label:s.name, kindLabel:s.kind, dot: on?s.color:'#d9d9d9',
+        onClick:()=>this.toggleSeries(s.key),
+        style:{ display:'inline-flex', alignItems:'center', gap:'7px', font:'600 12px var(--font-body)', padding:'7px 13px', borderRadius:'9999px', cursor:'pointer',
+          border: on ? '1.5px solid '+s.color : '1px dashed var(--line)', background: on?'#fff':'var(--canvas)', color: on?'var(--ink)':'var(--mute)' } };
+    });
+    const vizBtn = (key,label)=>({ label, onClick:()=>this.setState({chartType:key}),
+      style:{ font:'600 12px var(--font-body)', padding:'7px 16px', borderRadius:'9999px', border:'none', cursor:'pointer',
+        background: chartType===key?'#fff':'transparent', color: chartType===key?'var(--ink)':'var(--body)', boxShadow: chartType===key?'0 1px 3px rgba(45,45,45,.12)':'none' } });
+    const vizBtns = [ vizBtn('bar','Bar'), vizBtn('line','Line'), vizBtn('pie','Pie') ];
+
+    const anyFlow = visSeries.some(s=>s.kind==='flow'), anyBal = visSeries.some(s=>s.kind==='balance');
+    let chartCaption;
+    if (chartType==='pie') chartCaption = 'One month’s flow breakdown. Month-end balances appear in a separate donut — never mixed into the flows pie.';
+    else if (anyFlow && anyBal) chartCaption = (chartType==='bar'?'Bars are monthly flows (left axis). ':'Solid lines are monthly flows (left axis). ') + 'Dashed lines are month-end balances (right axis).';
+    else if (anyFlow) chartCaption = 'Monthly flows, per month (EUR).';
+    else if (anyBal)  chartCaption = 'Month-end balances, per month (EUR) — dashed lines.';
+    else chartCaption = 'Tap a series chip to plot it.';
+
+    /* ---- biggest expenses for selected month ---- */
+    const big = E.filter(x => x.month===effMonth).map(x=>({ name:x.name||'(unnamed)', group:x.group, v:this.toEur(x.amount,x.currency) })).filter(x=>x.v>0).sort((a,b)=>b.v-a.v).slice(0,6);
+    const maxBig = Math.max(0.01, ...big.map(x=>x.v));
+    const bigExpBars = big.map(x=>({ name:x.name, group:x.group, amt:this.money(x.v,0), w:Math.max(4,Math.round(x.v/maxBig*100)) }));
+
+    /* ---- income summaries ---- */
+    const incMonths = [...new Set(I.map(r=>(r.month||'').trim()).filter(Boolean))].sort();
+    const incomeMonthly = incMonths.map(m=>({ label:this.monthFull(m), total:this.money(incMonth(m),0) }));
+    const srcMap = {};
+    I.filter(x=>x.active).forEach(x=>{ const k=x.source||'(unnamed)'; srcMap[k]=(srcMap[k]||0)+this.toEur(x.amount,x.currency); });
+    const srcArr = Object.keys(srcMap).map(k=>({name:k,v:srcMap[k]})).sort((a,b)=>b.v-a.v);
+    const maxSrc = Math.max(0.01, ...srcArr.map(x=>x.v));
+    const incomeBySource = srcArr.map(x=>({ name:x.name, amt:this.money(x.v,0), w:Math.max(4,Math.round(x.v/maxSrc*100)) }));
+
+    /* ---- expense summaries ---- */
+    const expMonths = [...new Set(E.map(r=>(r.month||'').trim()).filter(Boolean))].sort();
+    const expenseMonthly = expMonths.map(m=>({ label:this.monthFull(m), joint:this.money(expGroupMonth(m,'Joint account'),0), subs:this.money(expGroupMonth(m,'Subscriptions'),0), personal:this.money(expGroupMonth(m,'Personal'),0), total:this.money(expMonth(m),0) }));
+
+    /* ---- expense classification (all months) ---- */
+    const PCOL = { 'Groceries':'#2f9e68','Eating out':'#f5a623','Transport':'#6a8dff','Health':'#e0566f','Beauty':'#c77dff','Shopping':'#1ec8c8','Other':'#b0b0b0' };
+    const grpMap = {}, grpCol = {};
+    E.forEach(x=>{
+      let key, color;
+      if (x.group==='Personal'){ const c = x.cat||'Other'; key = 'Personal · '+c; color = PCOL[c]||'#b0b0b0'; }
+      else if (x.group==='Joint account'){ key='Joint account'; color='#ef6dc4'; }
+      else if (x.group==='Subscriptions'){ key='Subscriptions'; color='#9b6dff'; }
+      else { key=x.group||'Other'; color='#9aa0b4'; }
+      grpMap[key]=(grpMap[key]||0)+this.toEur(x.amount,x.currency); grpCol[key]=color;
+    });
+    const grpArr = Object.keys(grpMap).map(k=>({name:k,v:grpMap[k]})).filter(x=>x.v>0).sort((a,b)=>b.v-a.v);
+    const grpGrand = Math.max(0.01, grpArr.reduce((t,x)=>t+x.v,0));
+    const maxGrp = Math.max(0.01, ...grpArr.map(x=>x.v));
+    const expenseByGroup = grpArr.map(x=>({ name:x.name, color:grpCol[x.name]||'#9aa0b4', amt:this.money(x.v,0), pct:Math.round(x.v/grpGrand*100)+'%', w:Math.max(4,Math.round(x.v/maxGrp*100)) }));
+    const itemMap = {}; E.forEach(x=>{ const k=(x.name||'').trim()||'(unnamed)'; if(!itemMap[k]) itemMap[k]={v:0,group:x.group}; itemMap[k].v+=this.toEur(x.amount,x.currency); });
+    const itemArr = Object.keys(itemMap).map(k=>({name:k,v:itemMap[k].v,group:itemMap[k].group})).filter(x=>x.v>0).sort((a,b)=>b.v-a.v).slice(0,8);
+    const maxItem = Math.max(0.01, ...itemArr.map(x=>x.v));
+    const expenseByItem = itemArr.map(x=>({ name:x.name, group:x.group, color:(x.group==='Joint account'?'#ef6dc4':x.group==='Subscriptions'?'#9b6dff':'#f5a623'), amt:this.money(x.v,0), w:Math.max(4,Math.round(x.v/maxItem*100)) }));
+
+    /* ---- savings summaries ---- */
+    const savMonths = [...new Set(S.map(r=>(r.month||'').trim()).filter(Boolean))].sort();
+    const savingsMonthly = savMonths.map(m=>({ label:this.monthFull(m), sav:this.money(savTypeMonth(m,'savings'),0), inv:this.money(savTypeMonth(m,'investment'),0) }));
+
+    /* ---- editable rows ---- */
+    const incomeRows = I.map(x=>({
+      id:x.id, month:x.month, source:x.source, category:x.category, amount:x.amount, currency:x.currency, active:!!x.active, opacity:x.active?1:0.5,
+      onMonth:e=>this.upd('income',x.id,'month',e.target.value),
+      onSource:e=>this.upd('income',x.id,'source',e.target.value),
+      onCat:e=>this.upd('income',x.id,'category',e.target.value),
+      onAmt:e=>this.upd('income',x.id,'amount',e.target.value),
+      onCur:e=>this.upd('income',x.id,'currency',e.target.value),
+      onActive:e=>this.upd('income',x.id,'active',e.target.checked),
+      onDel:()=>this.del('income',x.id)
+    }));
+    const mkExp = x => ({
+      id:x.id, month:x.month, name:x.name, group:x.group, amount:x.amount, currency:x.currency, status:x.status,
+      onMonth:e=>this.upd('expenses',x.id,'month',e.target.value),
+      onName:e=>this.upd('expenses',x.id,'name',e.target.value),
+      onAmt:e=>this.upd('expenses',x.id,'amount',e.target.value),
+      cat:x.cat, category:x.category,
+      onCur:e=>this.upd('expenses',x.id,'currency',e.target.value),
+      onStatus:e=>this.upd('expenses',x.id,'status',e.target.value),
+      onCat:e=>this.upd('expenses',x.id,'cat',e.target.value),
+      onCatSub:e=>this.upd('expenses',x.id,'category',e.target.value),
+      onDel:()=>this.del('expenses',x.id)
+    });
+    const expAll = E.map(mkExp);
+    const rowsJoint = expAll.filter(r=>r.group==='Joint account');
+    const rowsSubs = expAll.filter(r=>r.group==='Subscriptions');
+    const rowsPersonal = expAll.filter(r=>r.group==='Personal');
+
+    const savingsRows = S.map(x=>({
+      id:x.id, month:x.month, account:x.account, type:x.type, balance:x.balance, currency:x.currency,
+      onMonth:e=>this.upd('savings',x.id,'month',e.target.value),
+      onAccount:e=>this.upd('savings',x.id,'account',e.target.value),
+      onType:e=>this.upd('savings',x.id,'type',e.target.value),
+      onBal:e=>this.upd('savings',x.id,'balance',e.target.value),
+      onCur:e=>this.upd('savings',x.id,'currency',e.target.value),
+      onDel:()=>this.del('savings',x.id)
+    }));
+
+    /* ---- tabs ---- */
+    const mkTab = (key,label)=>({ label, onClick:()=>this.setState({tab:key}), style:{ font:'600 13px var(--font-body)', padding:'9px 18px', borderRadius:'9999px', cursor:'pointer', border: tab===key?'1px solid transparent':'1px solid var(--line)', background: tab===key?'var(--primary)':'#fff', color: tab===key?'var(--ink)':'var(--body)' } });
+    const nav = [ mkTab('home','Home'), mkTab('income','Income'), mkTab('expenses','Expenses'), mkTab('savings','Savings & Investments') ];
+
+    const dm = this.thisMonth();
+
+    /* ---- expense-pie month selectors: default to latest COMPLETE month ---- */
+    const completeMonths = months.filter(m => m < dm);
+    const latestComplete = completeMonths.length ? completeMonths[completeMonths.length-1] : (months[months.length-1] || '');
+    const effPie1 = (this.state.expPieMonth1 && mset.has(this.state.expPieMonth1)) ? this.state.expPieMonth1 : latestComplete;
+    const effPie2 = (this.state.expPieMonth2 && mset.has(this.state.expPieMonth2)) ? this.state.expPieMonth2 : latestComplete;
+
+    return {
+      nav, isHome:tab==='home', isIncome:tab==='income', isExpenses:tab==='expenses', isSavings:tab==='savings',
+      gbpEur:this.state.gbpEur,
+      onRate:e=>this.setState({gbpEur:e.target.value}),
+
+      /* home */
+      hasMonths, noMonths:!hasMonths,
+      monthOptions: months.map(m=>({value:m, label:this.monthFull(m)})),
+      homeMonth: effMonth,
+      homeMonthLabel: effMonth ? this.monthFull(effMonth) : '\u2014',
+      onSelMonth:e=>this.setState({selMonth:e.target.value}),
+      netPositionStr:this.money(netPosition,0),
+      surplusStr, surplusColor,
+      surplusSub: effMonth ? ('income ' + this.money(tmIncome,0) + ' \u2212 expenses ' + this.money(tmExpense,0)) : 'select a month',
+      runwayHeadline, runwayUnit, runwayColor,
+      runwaySub: deficit>0 ? ('savings ' + this.money(totalSavings,0) + ' \u00f7 monthly deficit') : 'income covers expenses this month',
+      tmIncomeStr:this.money(tmIncome,0), tmExpenseStr:this.money(tmExpense,0),
+      tmDiffStr:surplusStr, tmDiffColor:surplusColor,
+      showCharts,
+      seriesChips, vizBtns, chartCaption,
+      isPie: chartType==='pie', pieMonth: effPieMonth,
+      onPieMonth:e=>this.setState({pieMonth:e.target.value}),
+      bigChart: this.buildBigChart(months, visSeries, { type:chartType, pieMonth:effPieMonth, fill:chartFill }),
+      bigExpBars, bigExpEmpty: bigExpBars.length===0,
+
+      /* income */
+      incomeRows, incEmpty: I.length===0,
+      incomeMonthly, incomeBySource, incomeByCatEl: this.buildIncomePie(),
+      addIncome:()=>this.add('income',{ month:dm, source:'', category:'salary', amount:'', currency:'EUR', active:true }),
+
+      /* expenses */
+      rowsJoint, rowsSubs, rowsPersonal,
+      jointEmpty:rowsJoint.length===0, subsEmpty:rowsSubs.length===0, personalEmpty:rowsPersonal.length===0,
+      expEmpty:E.length===0, expenseMonthly, expenseByGroup, expenseByItem,
+      addJoint:()=>this.add('expenses',{ month:dm, name:'', group:'Joint account', amount:'', currency:'EUR', status:'' }),
+      addSub:()=>this.add('expenses',{ month:dm, name:'', group:'Subscriptions', amount:'', currency:'EUR', status:'Keep', category:'Other' }),
+      addPersonal:()=>this.add('expenses',{ month:dm, name:'', group:'Personal', amount:'', currency:'EUR', status:'', cat:'Other' }),
+
+      expPie1Month: effPie1, expPie2Month: effPie2,
+      onExpPie1:e=>this.setState({expPieMonth1:e.target.value}),
+      onExpPie2:e=>this.setState({expPieMonth2:e.target.value}),
+      expPie1El: this.buildPersonalPie(effPie1),
+      expPie2El: this.buildSubsPie(effPie2),
+
+      /* savings */
+      savingsRows, savEmpty:S.length===0, savingsMonthly,
+      totalSavingsStr:this.money(totalSavings,0), totalInvestStr:this.money(totalInvest,0),
+      totalCardStr:this.money(totalCard,0), cardColor: totalCard>0 ? 'var(--error)' : 'var(--ink)',
+      addSavings:()=>this.add('savings',{ month:dm, account:'', type:'savings', balance:'', currency:'EUR' }),
+
+      /* data io */
+      exportData:()=>{
+        const blob = new Blob([JSON.stringify(this.dataOut(),null,2)],{type:'application/json'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href=url; a.download='my-finances.json';
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        setTimeout(()=>URL.revokeObjectURL(url),1000);
+      },
+      onImport:e=>{
+        const f = e.target.files && e.target.files[0]; if(!f) return;
+        const reader = new FileReader();
+        reader.onload = ()=>{ try{ this.setState(this.fromData(JSON.parse(reader.result))); } catch(err){ alert('That file is not valid JSON.'); } };
+        reader.readAsText(f); e.target.value='';
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>
