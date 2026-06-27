@@ -50,6 +50,41 @@
   <sc-if value="{{ isHome }}" hint-placeholder-val="{{ true }}">
   <div>
 
+    <!-- one-click PDF import (browser-only) -->
+    <div style="background:#fff;border-radius:var(--rounded-xl);padding:18px 22px;margin-bottom:16px">
+      <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+        <label style="font:600 13px var(--font-body);color:var(--ink);background:var(--primary);border:none;border-radius:9999px;padding:10px 20px;cursor:pointer;white-space:nowrap">Import PDF statement<input type="file" accept=".pdf" onChange="{{ onPdfFile }}" style="display:none"></label>
+        <div style="font:400 12px var(--font-body);color:var(--mute);max-width:560px;text-wrap:pretty">Pick a bunq or Wise PDF. It's read in your browser with pdf.js — never uploaded or written to a file. The numbers are pulled out automatically; you confirm with one click before anything is added.</div>
+      </div>
+      <sc-if value="{{ importHasPdfMsg }}" hint-placeholder-val="{{ false }}"><div style="font:400 13px var(--font-body);color:var(--body);margin-top:10px">{{ importPdfMsg }}</div></sc-if>
+      <sc-if value="{{ importHasMsg }}" hint-placeholder-val="{{ false }}"><div style="font:400 13px var(--font-body);color:var(--body);margin-top:10px">{{ importMsg }}</div></sc-if>
+
+      <sc-if value="{{ hasImportPreview }}" hint-placeholder-val="{{ false }}">
+      <div style="margin-top:16px;border-top:1px solid var(--line);padding-top:16px">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+          <div style="font:600 14px var(--font-body)">Extracted from {{ importType }}</div>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <span style="font:600 11px var(--font-body);letter-spacing:.06em;text-transform:uppercase;color:var(--mute)">Month</span>
+            <input type="month" value="{{ importMonth }}" onInput="{{ onImportMonth }}" style="font:400 13px var(--font-body);color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:10px;padding:7px 9px">
+            <span style="font:600 11px var(--font-body);letter-spacing:.06em;text-transform:uppercase;color:var(--mute);margin-left:4px">Currency</span>
+            <select value="{{ importCurrency }}" onChange="{{ onImportCurrency }}" style="font:400 13px var(--font-body);color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:10px;padding:7px 8px"><option value="EUR">EUR</option><option value="GBP">GBP</option></select>
+          </div>
+        </div>
+        <sc-if value="{{ importHasCurrencyNote }}" hint-placeholder-val="{{ false }}"><div style="font:400 12px var(--font-body);color:var(--error);margin-top:8px">{{ importCurrencyNote }}</div></sc-if>
+        <div style="margin-top:12px">
+          <sc-for list="{{ importRows }}" as="r" hint-placeholder-count="3">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;font:400 13px var(--font-body);padding:9px 0;border-bottom:1px solid var(--line)"><span>{{ r.label }}</span><span style="white-space:nowrap;text-align:right"><span style="font-weight:600;color:{{ r.valColor }}">{{ r.value }}</span> <span style="color:var(--mute);font-size:11px">{{ r.eur }}</span></span></div>
+          </sc-for>
+        </div>
+        <div style="display:flex;gap:9px;align-items:center;margin-top:16px;flex-wrap:wrap">
+          <button onClick="{{ confirmImport }}" style="font:600 13px var(--font-body);color:var(--ink);background:var(--primary);border:none;border-radius:9999px;padding:9px 20px;cursor:pointer">Looks good — add</button>
+          <button onClick="{{ clearImport }}" style="font:600 13px var(--font-body);color:var(--ink);background:#fff;border:1px solid var(--ink);border-radius:9999px;padding:9px 18px;cursor:pointer">Cancel</button>
+          <span style="font:400 12px var(--font-body);color:var(--mute)">Adds to your existing data — “not found” fields are skipped. Saved to this browser only.</span>
+        </div>
+      </div>
+      </sc-if>
+    </div>
+
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:18px">
       <span style="font:600 11px var(--font-body);letter-spacing:.1em;text-transform:uppercase;color:var(--mute)">Showing month</span>
       <sc-if value="{{ hasMonths }}" hint-placeholder-val="{{ false }}">
@@ -555,7 +590,11 @@ class Component extends DCLogic {
     var totalInterest=this.importLabeledAmount(text,[ /total\s+interest\s+earned/i, /interest\s+earned/i, /total\s+returns?/i, /returns?\s+earned/i, /total\s+interest/i, /\bcashback\b/i ]);
     var totalFees=this.importLabeledAmount(text,[ /total\s+fees\s+paid/i, /total\s+fees/i, /fees\s+paid/i, /\bwise\s+fees\b/i ]);
     if(type==='generic' && closingBalance==null && totalInterest==null && totalFees==null) return null;
-    return { type:type, currency:cur, currencyDetected:curDet, closingBalance:closingBalance, totalInterest:totalInterest, totalFees:totalFees };
+    /* these statement types are year-end (December 31), so bucket to the detected year's December. */
+    var _year=null, _yp=[ /\bdecember\s+\d{1,2},?\s+(20\d{2})/i, /\b\d{1,2}\s+december\s+(20\d{2})/i, /\bdecember\s*31\D{0,20}(20\d{2})/i, /\b(20\d{2})\b/ ];
+    for(var _i=0;_i<_yp.length;_i++){ var _m=_yp[_i].exec(text); if(_m){ _year=_m[1]; break; } }
+    var month = _year ? (_year+'-12') : null;
+    return { type:type, currency:cur, currencyDetected:curDet, closingBalance:closingBalance, totalInterest:totalInterest, totalFees:totalFees, month:month };
   }
 
   /* mutations */
@@ -992,12 +1031,12 @@ class Component extends DCLogic {
       isImport: tab==='import',
       importText: this.state.importText,
       onImportText: e=>this.setState({importText:e.target.value, importMsg:''}),
-      onPdfFile: e=>{ const f=e.target.files && e.target.files[0]; e.target.value=''; if(!f) return; this.setState({importPdfMsg:'Reading '+f.name+' …', importMsg:''}); this.extractPdfText(f).then(txt=>{ const p=this.importParse(txt); this.setState(p ? {importText:txt, importParsed:p, importPdfMsg:''} : {importText:txt, importParsed:null, importPdfMsg:'', importMsg:'PDF text was read, but no closing balance, interest or fees were recognised — nothing was changed.'}); }).catch(()=>{ this.setState({importPdfMsg:'Could not read that PDF in the browser — you can paste the text instead.'}); }); },
+      onPdfFile: e=>{ const f=e.target.files && e.target.files[0]; e.target.value=''; if(!f) return; this.setState({importPdfMsg:'Reading '+f.name+' …', importMsg:''}); this.extractPdfText(f).then(txt=>{ const p=this.importParse(txt); this.setState(p ? {importText:txt, importParsed:p, importPdfMsg:'', importMsg:'', importMonth:(p.month||'')} : {importText:txt, importParsed:null, importPdfMsg:'', importMsg:'PDF text was read, but no closing balance, interest or fees were recognised — nothing was changed.'}); }).catch(()=>{ this.setState({importPdfMsg:'Could not read that PDF in the browser — you can paste the text instead.'}); }); },
       importPdfMsg: this.state.importPdfMsg, importHasPdfMsg: !!this.state.importPdfMsg,
       importMonth: this.state.importMonth || dm,
       onImportMonth: e=>this.setState({importMonth:e.target.value}),
       importMsg: this.state.importMsg, importHasMsg: !!this.state.importMsg,
-      onExtract: ()=>{ const p=this.importParse(this.state.importText); this.setState(p ? {importParsed:p, importMsg:''} : {importParsed:null, importMsg:'No closing balance, interest or fees were recognised in the text — nothing was changed.'}); },
+      onExtract: ()=>{ const p=this.importParse(this.state.importText); this.setState(p ? {importParsed:p, importMsg:'', importMonth:(p.month||'')} : {importParsed:null, importMsg:'No closing balance, interest or fees were recognised in the text — nothing was changed.'}); },
       clearImport: ()=>this.setState({importText:'', importParsed:null, importMsg:'', importPdfMsg:''}),
       hasImportPreview: !!_imp,
       importType,
