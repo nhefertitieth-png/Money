@@ -627,7 +627,7 @@ class Component extends DCLogic {
     const I = this.state.income;
     const PAL = ['#6a8dff','#2f9e68','#f5a623','#c77dff','#ef6dc4','#1ec8c8','#e0566f','#9b6dff','#b08968','#3aa6a0','#ff99da','#8f8f8f'];
     const map = {};
-    I.filter(x => x.active).forEach(x=>{
+    I.filter(x => x.active && (!this._period || this._period(x.month))).forEach(x=>{
       const k = (x.source||'').trim() || '(unnamed)'; map[k] = (map[k]||0) + this.toEur(x.amount,x.currency);
     });
     const items = Object.keys(map).map(k=>({ name:k, v:map[k] })).filter(x=>x.v>0.005).sort((a,b)=>b.v-a.v)
@@ -649,7 +649,9 @@ class Component extends DCLogic {
     const fFrom=this.state.filterFrom || (allMonths[0]||'');
     const fTo=this.state.filterTo || (allMonths[allMonths.length-1]||'');
     const inPeriod=m=>{ m=(m||'').trim(); if(!m) return false; if(fmode==='year') return m.slice(0,4)===fYear; if(fmode==='month') return m===fMonth; if(fmode==='custom') return (!fFrom||m>=fFrom)&&(!fTo||m<=fTo); return true; };
-    const I=I0.filter(r=>inPeriod(r.month)), E=E0.filter(r=>inPeriod(r.month)), S=S0.filter(r=>inPeriod(r.month));
+    const I=I0, E=E0, S=S0;                  /* tables & text totals use ALL data (unfiltered) */
+    this._period=inPeriod;
+    const If=I.filter(r=>inPeriod(r.month)), Ef=E.filter(r=>inPeriod(r.month)), Sf=S.filter(r=>inPeriod(r.month)); /* graphics use the filtered data */
     const showCharts = this.props.showCharts !== false;
     const chartFill = !!this.props.chartFill;
 
@@ -657,6 +659,7 @@ class Component extends DCLogic {
     const mset = new Set();
     [I,E,S].forEach(arr => arr.forEach(r => { const m=(r.month||'').trim(); if(m) mset.add(m); }));
     const months = [...mset].sort();
+    const chartMonths = months.filter(inPeriod);   /* x-axis months for the time chart, after the period filter */
     const hasMonths = months.length>0;
     const effMonth = (this.state.selMonth && mset.has(this.state.selMonth)) ? this.state.selMonth : (months[months.length-1] || '');
 
@@ -733,7 +736,7 @@ class Component extends DCLogic {
     const incMonths = [...new Set(I.map(r=>(r.month||'').trim()).filter(Boolean))].sort();
     const incomeMonthly = incMonths.map(m=>({ label:this.monthFull(m), total:this.money(incMonth(m),0) }));
     const srcMap = {};
-    I.filter(x=>x.active).forEach(x=>{ const k=x.source||'(unnamed)'; srcMap[k]=(srcMap[k]||0)+this.toEur(x.amount,x.currency); });
+    If.filter(x=>x.active).forEach(x=>{ const k=x.source||'(unnamed)'; srcMap[k]=(srcMap[k]||0)+this.toEur(x.amount,x.currency); });
     const srcArr = Object.keys(srcMap).map(k=>({name:k,v:srcMap[k]})).sort((a,b)=>b.v-a.v);
     const maxSrc = Math.max(0.01, ...srcArr.map(x=>x.v));
     const incomeBySource = srcArr.map(x=>({ name:x.name, amt:this.money(x.v,0), w:Math.max(4,Math.round(x.v/maxSrc*100)) }));
@@ -745,7 +748,7 @@ class Component extends DCLogic {
     /* ---- expense classification (all months) ---- */
     const PCOL = { 'Groceries':'#2f9e68','Eating out':'#f5a623','Transport':'#6a8dff','Health':'#e0566f','Beauty':'#c77dff','Shopping':'#1ec8c8','Other':'#b0b0b0' };
     const grpMap = {}, grpCol = {};
-    E.forEach(x=>{
+    Ef.forEach(x=>{
       let key, color;
       if (x.group==='Personal'){ const c = x.cat||'Other'; key = 'Personal · '+c; color = PCOL[c]||'#b0b0b0'; }
       else if (x.group==='Joint account'){ key='Joint account'; color='#ef6dc4'; }
@@ -757,7 +760,7 @@ class Component extends DCLogic {
     const grpGrand = Math.max(0.01, grpArr.reduce((t,x)=>t+x.v,0));
     const maxGrp = Math.max(0.01, ...grpArr.map(x=>x.v));
     const expenseByGroup = grpArr.map(x=>({ name:x.name, color:grpCol[x.name]||'#9aa0b4', amt:this.money(x.v,0), pct:Math.round(x.v/grpGrand*100)+'%', w:Math.max(4,Math.round(x.v/maxGrp*100)) }));
-    const itemMap = {}; E.forEach(x=>{ const k=(x.name||'').trim()||'(unnamed)'; if(!itemMap[k]) itemMap[k]={v:0,group:x.group}; itemMap[k].v+=this.toEur(x.amount,x.currency); });
+    const itemMap = {}; Ef.forEach(x=>{ const k=(x.name||'').trim()||'(unnamed)'; if(!itemMap[k]) itemMap[k]={v:0,group:x.group}; itemMap[k].v+=this.toEur(x.amount,x.currency); });
     const itemArr = Object.keys(itemMap).map(k=>({name:k,v:itemMap[k].v,group:itemMap[k].group})).filter(x=>x.v>0).sort((a,b)=>b.v-a.v).slice(0,8);
     const maxItem = Math.max(0.01, ...itemArr.map(x=>x.v));
     const expenseByItem = itemArr.map(x=>({ name:x.name, group:x.group, color:(x.group==='Joint account'?'#ef6dc4':x.group==='Subscriptions'?'#9b6dff':'#f5a623'), amt:this.money(x.v,0), w:Math.max(4,Math.round(x.v/maxItem*100)) }));
@@ -828,7 +831,7 @@ class Component extends DCLogic {
       filterMonth:fMonth, onFilterMonth:e=>this.setState({filterMonth:e.target.value}),
       filterFrom:fFrom, onFilterFrom:e=>this.setState({filterFrom:e.target.value}),
       filterTo:fTo, onFilterTo:e=>this.setState({filterTo:e.target.value}),
-      filterSummary:(()=>{ const n=I.length+E.length+S.length, mc=months.length; let label; if(fmode==='year') label=fYear||'—'; else if(fmode==='month') label=fMonth?this.monthFull(fMonth):'—'; else if(fmode==='custom') label=(fFrom?this.monthShort(fFrom):'…')+' – '+(fTo?this.monthShort(fTo):'…'); else label='All time'; return label+' · '+mc+' month'+(mc===1?'':'s')+' · '+n+' entr'+(n===1?'y':'ies'); })(),
+      filterSummary:(()=>{ const n=If.length+Ef.length+Sf.length, mc=chartMonths.length; let label; if(fmode==='year') label=fYear||'—'; else if(fmode==='month') label=fMonth?this.monthFull(fMonth):'—'; else if(fmode==='custom') label=(fFrom?this.monthShort(fFrom):'…')+' – '+(fTo?this.monthShort(fTo):'…'); else label='All time'; return label+' · '+mc+' month'+(mc===1?'':'s')+' · '+n+' entr'+(n===1?'y':'ies'); })(),
       gbpEur:this.state.gbpEur,
       onRate:e=>this.setState({gbpEur:e.target.value}),
 
@@ -849,7 +852,7 @@ class Component extends DCLogic {
       seriesChips, vizBtns, chartCaption,
       isPie: chartType==='pie', pieMonth: effPieMonth,
       onPieMonth:e=>this.setState({pieMonth:e.target.value}),
-      bigChart: this.buildBigChart(months, visSeries, { type:chartType, pieMonth:effPieMonth, fill:chartFill }),
+      bigChart: this.buildBigChart(chartMonths, visSeries, { type:chartType, pieMonth:effPieMonth, fill:chartFill }),
       bigExpBars, bigExpEmpty: bigExpBars.length===0,
 
       /* income */
