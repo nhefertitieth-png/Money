@@ -1,0 +1,284 @@
+/* ============================================================
+   LDB — Lizy Del Busto Design System
+   colors_and_type.css — foundational + semantic tokens
+   ============================================================
+   Two type voices only:
+     · Display  → Paytone One   (top two scales ONLY — the brand moment)
+     · UI/Body  → Poppins       (all headings below display, all body, all UI)
+   One CTA accent: periwinkle (fill-only). Pink is decorative, never an action.
+   ACCESSIBILITY LAW: every accent fill carries dark INK text (#2d2d2d), never white.
+   Elevation is carried by SURFACE CONTRAST, not shadow. Radius signature: 24px.
+   ============================================================ */
+
+/* ---- Fonts ------------------------------------------------ */
+/* Paytone One (display) — self-hosted, single weight (renders heavy/bold). */
+@font-face {
+  font-family: "Paytone One";
+  src: url("fonts/PaytoneOne-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Poppins (UI / body) — self-hosted, the weights actually used. */
+@font-face { font-family:"Poppins"; src:url("fonts/Poppins-Light.ttf")     format("truetype"); font-weight:300; font-style:normal; font-display:swap; }
+@font-face { font-family:"Poppins"; src:url("fonts/Poppins-Regular.ttf")   format("truetype"); font-weight:400; font-style:normal; font-display:swap; }
+@font-face { font-family:"Poppins"; src:url("fonts/Poppins-Italic.ttf")    format("truetype"); font-weight:400; font-style:italic;  font-display:swap; }
+@font-face { font-family:"Poppins"; src:url("fonts/Poppins-Medium.ttf")    format("truetype"); font-weight:500; font-style:normal; font-display:swap; }
+@font-face { font-family:"Poppins"; src:url("fonts/Poppins-SemiBold.ttf")  format("truetype"); font-weight:600; font-style:normal; font-display:swap; }
+@font-face { font-family:"Poppins"; src:url("fonts/Poppins-Bold.ttf")      format("truetype"); font-weight:700; font-style:normal; font-display:swap; }
+
+:root {
+  /* ======================================================
+     COLOR — Brand & Accent
+     ====================================================== */
+  /* Periwinkle — the SOLE CTA color. Fill only (fails as small text on white).
+     Text placed ON it must be --ink. */
+  --primary:        #6a8dff;   /* periwinkle — every primary CTA */
+  --primary-hover:  #5277ec;   /* darkened hover */
+  --primary-active: #3f63d4;   /* pressed */
+  --primary-pale:   #e6ecff;   /* soft tint — badge bg / surface accent */
+
+  /* Pink — DECORATIVE only. Never a CTA, never body text. Fill + dark ink on top. */
+  --accent-pink:      #ff99da; /* bubblegum — badges, highlights, illustration */
+  --accent-pink-deep: #ef6dc4; /* pink as icon/accent line where pale would vanish */
+  --accent-pink-pale: #ffe6f6; /* lightest pink — soft badge bg */
+
+  /* ---- Surface ---- (elevation = surface contrast, not shadow) */
+  --canvas:       #f6f6ff;   /* cool ghost-white — default page background */
+  --surface-warm: #f3e3e2;   /* blush band — alternates against the cool canvas */
+  --card:         #ffffff;   /* pure white — card interiors on canvas / blush */
+  --line:         rgba(45,45,45,.14); /* 1px hairline borders / dividers */
+
+  /* ---- Text ---- */
+  --ink:   #2d2d2d;   /* default text + headings — 12.8:1 on canvas */
+  --body:  #5c5c5c;   /* secondary body */
+  --mute:  #8f8f8f;   /* captions, placeholders, fine print */
+  --on-dark:      #f6f6ff;  /* primary text on ink/dark cards */
+  --on-dark-soft: #d8d8e2;  /* body copy on ink/dark cards */
+
+  /* ---- Functional (form states only — keep out of brand surface) ---- */
+  --success: #2f9e68;
+  --error:   #d6455a;
+
+  /* ======================================================
+     TYPE — families
+     ====================================================== */
+  --font-display: "Paytone One", system-ui, sans-serif;          /* top two scales ONLY */
+  --font-body:    "Poppins", system-ui, -apple-system, sans-serif; /* everything else */
+
+  /* ---- Type scale ---- (fluid-capped at the spec value) */
+  --display-hero: clamp(40px, 7vw, 64px);   /* hero headline — Paytone One */
+  --display-xl:   clamp(34px, 5vw, 48px);   /* sub-hero / big statement — Paytone One */
+  --heading-lg:   32px;   /* section headlines — Poppins 600 */
+  --heading-md:   24px;   /* sub-section — Poppins 600 */
+  --heading-sm:   20px;   /* card titles — Poppins 600 */
+  --body-lg:      18px;   /* lead paragraphs */
+  --body-md:      16px;   /* default body */
+  --body-sm:      14px;   /* secondary body */
+  --caption:      12px;   /* fine print */
+  --button-md:    16px;   /* button label — Poppins 600 */
+
+  /* ======================================================
+     SPACING — base unit 4px
+     ====================================================== */
+  --space-xxs:  2px;
+  --space-xs:   4px;
+  --space-sm:   8px;
+  --space-md:   12px;
+  --space-lg:   16px;
+  --space-xl:   24px;   /* canonical card interior */
+  --space-2xl:  32px;
+  --space-3xl:  48px;   /* band top/bottom padding */
+  --space-section: 48px;
+
+  /* ---- Layout ---- */
+  --container:  1200px;
+
+  /* ======================================================
+     RADIUS — 24px is the friendliness signature
+     ====================================================== */
+  --rounded-none: 0px;      /* full-bleed bands */
+  --rounded-sm:   8px;      /* inline pills, small badges */
+  --rounded-md:   12px;     /* form inputs */
+  --rounded-lg:   16px;     /* mid-size cards */
+  --rounded-xl:   24px;     /* CANONICAL button + card radius */
+  --rounded-pill: 9999px;   /* status pills */
+  --rounded-full: 9999px;   /* circular icon containers / avatars */
+
+  /* ======================================================
+     ELEVATION — surface contrast first; shadow is sparing + soft
+     ====================================================== */
+  --shadow-soft:  0 10px 30px -16px rgba(45,45,45,.22);  /* optional, sparing lift */
+  --shadow-card:  0 18px 44px -24px rgba(106,141,255,.42); /* hover lift for cards */
+  --border-hairline: 1px solid var(--line);
+
+  /* ======================================================
+     MOTION
+     ====================================================== */
+  --ease: cubic-bezier(.16, 1, .3, 1);
+  --dur-reveal: .9s;
+  --dur-hover:  .35s;
+  --dur-micro:  .2s;
+}
+
+/* ============================================================
+   SEMANTIC TYPE CLASSES
+   Use these (or copy the rules) for on-brand defaults.
+   Paytone One = display-hero / display-xl ONLY. Never below ~40px,
+   never in long runs of text.
+   ============================================================ */
+
+.ldb-display-hero {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--display-hero);
+  line-height: 1.03;
+  letter-spacing: -.01em;
+  color: var(--ink);
+}
+
+.ldb-display-xl {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--display-xl);
+  line-height: 1.08;
+  letter-spacing: -.01em;
+  color: var(--ink);
+}
+
+.ldb-heading-lg {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: var(--heading-lg);
+  line-height: 1.25;
+  letter-spacing: -.009em;
+  color: var(--ink);
+}
+
+.ldb-heading-md {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: var(--heading-md);
+  line-height: 1.33;
+  letter-spacing: -.008em;
+  color: var(--ink);
+}
+
+.ldb-heading-sm {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: var(--heading-sm);
+  line-height: 1.4;
+  color: var(--ink);
+}
+
+.ldb-body-lg {
+  font-family: var(--font-body);
+  font-weight: 400;
+  font-size: var(--body-lg);
+  line-height: 1.56;
+  color: var(--body);
+}
+
+.ldb-body {
+  font-family: var(--font-body);
+  font-weight: 400;
+  font-size: var(--body-md);
+  line-height: 1.5;
+  color: var(--body);
+}
+
+.ldb-body-strong {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: var(--body-md);
+  line-height: 1.5;
+  color: var(--ink);
+}
+
+.ldb-body-sm {
+  font-family: var(--font-body);
+  font-weight: 400;
+  font-size: var(--body-sm);
+  line-height: 1.43;
+  color: var(--body);
+}
+
+.ldb-caption {
+  font-family: var(--font-body);
+  font-weight: 400;
+  font-size: var(--caption);
+  line-height: 1.33;
+  color: var(--mute);
+}
+
+/* ============================================================
+   COMPONENT HELPERS — minimal, token-driven.
+   The 24px pill geometry + dark-ink-on-accent law live here.
+   ============================================================ */
+
+/* ---- Buttons (≈48px tall, AAA touch target) ---- */
+.ldb-btn {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: var(--button-md);
+  line-height: 24px;
+  padding: 12px 24px;
+  border-radius: var(--rounded-xl);
+  border: none;
+  color: var(--ink);                 /* dark ink on every fill — required */
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: background var(--dur-micro) var(--ease), transform var(--dur-micro) var(--ease), border-color var(--dur-micro) var(--ease);
+}
+.ldb-btn-primary   { background: var(--primary); }
+.ldb-btn-primary:hover  { background: var(--primary-hover); }
+.ldb-btn-primary:active { background: var(--primary-active); }
+.ldb-btn-secondary { background: var(--surface-warm); }
+.ldb-btn-tertiary  { background: var(--card); border: 1px solid var(--ink); }
+.ldb-btn-playful   { background: var(--accent-pink); }
+
+/* ---- Cards ---- (no border by default; surface contrast does the lifting) */
+.ldb-card {
+  border-radius: var(--rounded-xl);
+  padding: var(--space-xl);
+  color: var(--ink);
+}
+.ldb-card-content   { background: var(--card); }
+.ldb-card-warm      { background: var(--surface-warm); }
+.ldb-card-blue-pale { background: var(--primary-pale); }
+.ldb-card-dark      { background: var(--ink); color: var(--on-dark); }
+
+/* ---- Input ---- */
+.ldb-input {
+  font-family: var(--font-body);
+  font-size: var(--body-md);
+  line-height: 24px;
+  color: var(--ink);
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--rounded-md);
+  padding: 12px 16px;
+  width: 100%;
+  transition: border-color var(--dur-micro) var(--ease), box-shadow var(--dur-micro) var(--ease);
+}
+.ldb-input::placeholder { color: var(--mute); }
+.ldb-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-pale); }
+
+/* ---- Badges ---- */
+.ldb-badge {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: var(--body-sm);
+  line-height: 1;
+  padding: 6px 12px;
+  border-radius: var(--rounded-pill);
+  display: inline-flex;
+  align-items: center;
+}
+.ldb-badge-blue { background: var(--primary-pale); color: var(--primary-active); }
+.ldb-badge-pink { background: var(--accent-pink-pale); color: var(--accent-pink-deep); }
