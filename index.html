@@ -454,6 +454,8 @@ class Component extends DCLogic {
   dataOut(){ const {gbpEur,income,expenses,savings} = this.state; return { version:1, gbpEur, income, expenses, savings }; }
   withIds(a){ return Array.isArray(a) ? a.map(r => (r&&r.id)?r:{...r,id:this.uid()}) : []; }
   fromData(d){ d = d||{}; return { gbpEur: d.gbpEur!=null?String(d.gbpEur):'1.16', income:this.withIds(d.income), expenses:this.normExp(this.withIds(d.expenses)), savings:this.withIds(d.savings) }; }
+  /* content signature of a row, ignoring id — used to skip duplicates on import */
+  sig(r){ return JSON.stringify(Object.keys(r||{}).filter(k=>k!=='id').sort().reduce((o,k)=>{ o[k]=r[k]; return o; },{})); }
   subCatMap(){ return {
     'Claude (Anthropic)':'AI tools','ChatGPT (OpenAI)':'AI tools','Higgsfield':'AI tools',
     'Canva':'Design tools','Figma':'Design tools',
@@ -886,7 +888,16 @@ class Component extends DCLogic {
       onImport:e=>{
         const f = e.target.files && e.target.files[0]; if(!f) return;
         const reader = new FileReader();
-        reader.onload = ()=>{ try{ this.setState(this.fromData(JSON.parse(reader.result))); } catch(err){ alert('That file is not valid JSON.'); } };
+        reader.onload = ()=>{ try{
+          const d = JSON.parse(reader.result) || {};
+          const inc = { income:this.withIds(d.income), expenses:this.normExp(this.withIds(d.expenses)), savings:this.withIds(d.savings) };
+          const s = this.state;
+          const dedupeAdd = (existing, rows)=>{ const seen=new Set(existing.map(r=>this.sig(r))); const out=existing.slice(); let added=0; rows.forEach(r=>{ const g=this.sig(r); if(!seen.has(g)){ seen.add(g); out.push({...r, id:this.uid()}); added++; } }); return { out:out, added:added, total:rows.length }; };
+          const ri=dedupeAdd(s.income, inc.income), re=dedupeAdd(s.expenses, inc.expenses), rs=dedupeAdd(s.savings, inc.savings);
+          this.setState({ income:ri.out, expenses:re.out, savings:rs.out });
+          const added=ri.added+re.added+rs.added, total=ri.total+re.total+rs.total;
+          alert('Import merged into your existing data.\n\n'+added+' new entr'+(added===1?'y':'ies')+' added, '+(total-added)+' duplicate'+((total-added)===1?'':'s')+' skipped.\n\nNothing was deleted.');
+        } catch(err){ alert('That file is not valid JSON.'); } };
         reader.readAsText(f); e.target.value='';
       }
     };
